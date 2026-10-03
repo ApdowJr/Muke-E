@@ -1,0 +1,6 @@
+{
+  "name": "Moke E - Barashada Luqadaha & Dhawaaq Saxaha AI",
+  "description": "Baro oo ku wada hadal luqadaha adduunka AI, sax dhawaaqaaga, daawo qoraalka tooska ah ee hadalka (transcription), lana sheekeyso Moke E.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
