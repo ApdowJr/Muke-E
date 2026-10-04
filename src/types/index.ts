@@ -33,6 +33,13 @@ export interface LanguageInfo {
 
 export type SkillLevel = 'Beginner' | 'Intermediate' | 'Advanced';
 
+export interface LearningFocus {
+  skill: string;
+  weakness: string;
+  correction: string;
+  practicePrompt: string;
+}
+
 export interface LearnerCorrection {
   detected: string;
   natural: string;
