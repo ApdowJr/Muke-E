@@ -11,7 +11,7 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export const app = express();
+export export const app = express();
 const PORT = 3000;
 
 app.use(express.json({ limit: '30mb' }));
@@ -709,5 +709,7 @@ async function startServer() {
     console.log(`Server listening on http://localhost:${PORT}`);
   });
 }
-
-startServer();
+ 
+if (!process.env.VERCEL) {
+  startServer();
+}
