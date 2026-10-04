@@ -417,7 +417,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
                     </span>{' '}
                     {msg.taskResult.feedback}
                   </div>}
-                  {!isUser && msg.translation && <p className="mt-2 border-t border-app-border pt-2 text-xs text-text-secondary">{msg.translation}</p>
+                  {!isUser && msg.translation && <p className="mt-2 border-t border-app-border pt-2 text-xs text-text-secondary">{msg.translation}</p>}
                 </div>
                 {!isUser && <div className="flex items-center gap-4 px-1 text-xs text-text-muted">
                   <button onClick={() => handleSpeak(msg.text, msg.id)} className={cn('flex items-center gap-1.5 font-semibold hover:text-primary', isPlaying && 'text-primary')}>
