@@ -1,5 +1,6 @@
 import express from 'express';
 import https from 'https';
+import { createServer as createHttpServer } from 'http';
 import { createServer as createViteServer } from 'vite';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -11,7 +12,7 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export export const app = express();
+export const app = express();
 const PORT = 3000;
 
 app.use(express.json({ limit: '30mb' }));
@@ -19,18 +20,93 @@ app.use(express.json({ limit: '30mb' }));
 // Initialize GoogleGenAI SDK with required User-Agent
 const getAI = () => {
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    console.warn('GEMINI_API_KEY is not set in environment.');
-  }
   return new GoogleGenAI({
     apiKey: apiKey || '',
-    httpOptions: {
-      headers: {
-        'User-Agent': 'aistudio-build',
-      },
-    },
+    httpOptions: { headers: { 'User-Agent': 'muke-e' } },
   });
 };
+
+type AIProviderName = 'openrouter' | 'ollama' | 'gemini';
+
+function getConfiguredProvider(): AIProviderName {
+  const requested = process.env.AI_PROVIDER?.toLowerCase();
+  if (requested === 'ollama' || requested === 'gemini') return requested;
+  if (process.env.OPENROUTER_API_KEY) return 'openrouter';
+  if (process.env.OLLAMA_BASE_URL) return 'ollama';
+  return 'gemini';
+}
+
+function getProviderModel(provider: AIProviderName) {
+  if (provider === 'openrouter') return process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.3-8b-instruct:free';
+  if (provider === 'ollama') return process.env.OLLAMA_MODEL || 'llama3.2';
+  return process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('AI request timed out')), timeoutMs)),
+  ]);
+}
+
+async function generateWithOpenCompatibleProvider(
+  provider: Exclude<AIProviderName, 'gemini'>,
+  system: string,
+  messages: Array<{ role: string; content: string }>,
+) {
+  const isOpenRouter = provider === 'openrouter';
+  const baseUrl = isOpenRouter
+    ? 'https://openrouter.ai/api/v1/chat/completions'
+    : `${(process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434').replace(/\/$/, '')}/v1/chat/completions`;
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (isOpenRouter) {
+    headers.Authorization = `Bearer ${process.env.OPENROUTER_API_KEY}`;
+    headers['HTTP-Referer'] = process.env.APP_URL || 'http://localhost:3000';
+    headers['X-Title'] = 'Muke-E';
+  }
+
+  const response = await withTimeout(fetch(baseUrl, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      model: getProviderModel(provider),
+      messages: [{ role: 'system', content: system }, ...messages],
+      temperature: 0.7,
+      max_tokens: Number(process.env.AI_MAX_TOKENS || 700),
+      response_format: { type: 'json_object' },
+    }),
+  }), Number(process.env.AI_TIMEOUT_MS || 20000));
+
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(`${provider} returned ${response.status}: ${detail.slice(0, 240)}`);
+  }
+  const payload = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
+  const content = payload.choices?.[0]?.message?.content;
+  if (!content) throw new Error(`${provider} returned an empty response`);
+  return JSON.parse(content);
+}
+
+async function generateTutorResponse(provider: AIProviderName, system: string, history: Array<{ role: string; text: string }>) {
+  if (provider !== 'gemini') {
+    return generateWithOpenCompatibleProvider(provider, system, history.map((message) => ({
+      role: message.role === 'tutor' ? 'assistant' : 'user',
+      content: message.text,
+    })));
+  }
+
+  const ai = getAI();
+  const formattedHistory = history.map((message) => ({
+    role: message.role === 'tutor' ? 'model' : 'user',
+    parts: [{ text: message.text }],
+  }));
+  const response = await ai.models.generateContent({
+    model: getProviderModel('gemini'),
+    contents: formattedHistory,
+    config: { systemInstruction: system, responseMimeType: 'application/json' },
+  });
+  return JSON.parse(response.text || '{}');
+}
 
 // -------------------------------------------------------------
 // HONEST PRONUNCIATION EVALUATION ENGINE (audio-aware when Gemini is available)
@@ -273,8 +349,8 @@ app.post('/api/chat', async (req, res) => {
       masteryGuidance = '',
     } = req.body;
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
+    const provider = getConfiguredProvider();
+    if (provider === 'gemini' && !process.env.GEMINI_API_KEY) {
       return res.status(200).json({
         reply: `Hello! I am ${tutorName}. How can I help you practice ${targetLanguage} today?`,
         translation: `Salaan! Waxaan ahay ${tutorName}. Sideen kuugu caawin karaa inaad maanta barato ${targetLanguage}?`,
@@ -394,70 +470,9 @@ Your Goal:
 - Return the taskResult skill using the most relevant skill from speaking, listening, vocabulary, grammar, pronunciation, or fluency.
 - Keep taskResult.feedback short and actionable in the learner explanation language.`;
 
-    const formattedHistory = messages.map((m: any) => ({
-      role: m.role === 'tutor' ? 'model' : 'user',
-      parts: [{ text: m.text }],
-    }));
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
-      contents: formattedHistory.length > 0 ? formattedHistory : [{ role: 'user', parts: [{ text: `Hello ${tutorName}, let's start conversation in ${targetLanguage} for scenario: ${scenario}` }] }],
-      config: {
-        systemInstruction,
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            reply: { type: Type.STRING, description: 'Tutor reply in the target language' },
-            translation: { type: Type.STRING, description: 'Translation in learner base language' },
-            phonetic: { type: Type.STRING, description: 'Phonetic or IPA transcription guide' },
-            feedback: { type: Type.STRING, description: 'Constructive grammar/vocab feedback' },
-            taskResult: {
-              type: Type.OBJECT,
-              properties: {
-                outcome: { type: Type.STRING, description: 'Adaptive task outcome: success, partial, or fail' },
-                skill: { type: Type.STRING, description: 'Relevant skill: speaking, listening, vocabulary, grammar, pronunciation, or fluency' },
-                feedback: { type: Type.STRING, description: 'Short actionable task feedback in the learner explanation language' },
-              },
-              required: ['outcome', 'skill', 'feedback'],
-            },
-            focusResult: {
-              type: Type.OBJECT,
-              properties: {
-                passed: { type: Type.BOOLEAN, description: 'When focused practice is active, whether the learner successfully used the target correction in this new sentence. Otherwise false.' },
-                feedback: { type: Type.STRING, description: 'Short feedback about focused-practice success in the learner explanation language' },
-              },
-              required: ['passed', 'feedback'],
-            },
-            correction: {
-              type: Type.OBJECT,
-              properties: {
-                detected: { type: Type.STRING, description: 'Exact learner phrase that needs correction, or empty string' },
-                natural: { type: Type.STRING, description: 'Natural target-language replacement, or empty string' },
-                explanation: { type: Type.STRING, description: 'Why this is more natural, explained in the learner native language' },
-                focusArea: { type: Type.STRING, description: 'Short skill label such as Articles, Tense, Word choice, Preposition' },
-                practicePrompt: { type: Type.STRING, description: 'One short target-language prompt to practice the correction' },
-              },
-              required: ['detected', 'natural', 'explanation', 'focusArea', 'practicePrompt'],
-            },
-            suggestedReplies: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  text: { type: Type.STRING, description: 'Suggested response in target language' },
-                  translation: { type: Type.STRING, description: 'Translation in learner language' },
-                },
-                required: ['text', 'translation'],
-              },
-            },
-          },
-          required: ['reply', 'translation', 'phonetic', 'feedback', 'taskResult', 'focusResult', 'correction', 'suggestedReplies'],
-        },
-      },
-    });
-
-    const parsed = JSON.parse(response.text || '{}');
+    const parsed = await generateTutorResponse(provider, systemInstruction, messages.length > 0
+      ? messages
+      : [{ role: 'user', text: `Hello ${tutorName}, let's start conversation in ${targetLanguage} for scenario: ${scenario}` }]);
     parsed.taskResult = normalizeTaskResult(parsed.taskResult);
     res.json(parsed);
   } catch (error: any) {
@@ -692,9 +707,19 @@ app.get('/api/tts', (req, res) => {
 
 // Setup Vite middleware in dev, or serve static dist in production
 async function startServer() {
+  const httpServer = createHttpServer(app);
+
   if (process.env.NODE_ENV !== 'production') {
+    // The hosted preview does not proxy Vite's WebSocket upgrade endpoint.
+    // Keep Vite in middleware mode, but disable both the HMR client and watcher.
+    process.env.DISABLE_HMR = 'true';
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        hmr: false,
+        ws: false,
+        watch: null,
+      },
       appType: 'spa',
     });
     app.use(vite.middlewares);
@@ -705,7 +730,7 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
+  httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`Server listening on http://localhost:${PORT}`);
   });
 }

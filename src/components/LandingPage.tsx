@@ -21,7 +21,7 @@ const scenarios = [
 
 const steps = [
   ['01', 'Choose your goal', 'Set your language, CEFR level, and the situations that matter to you.'],
-  ['02', 'Practice with AI', 'Move between guided lessons, voice practice, and natural conversation.'],
+  ['02', 'Practice out loud', 'Move between guided lessons, voice practice, and natural conversation.'],
   ['03', 'Improve & remember', 'Weak skills return in new contexts until your evidence gets stronger.'],
 ];
 
@@ -79,9 +79,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ appLang, targetLang, o
       <main>
         <section className="mx-auto grid max-w-7xl gap-14 px-5 pb-24 pt-16 sm:px-8 lg:grid-cols-[1.02fr_.98fr] lg:items-center lg:pt-24">
           <div>
-            <p className="mb-5 text-xs font-bold uppercase tracking-[.22em] text-primary">AI language coach · {language.name}</p>
+            <p className="mb-5 text-xs font-bold uppercase tracking-[.22em] text-primary">A calmer way to learn · {language.name}</p>
             <h1 className="max-w-3xl font-display text-5xl font-extrabold leading-[.98] tracking-[-.055em] sm:text-6xl lg:text-7xl">Learn every language.<br /><span className="text-primary">Speak with confidence.</span></h1>
-            <p className="mt-7 max-w-xl text-base leading-7 text-text-secondary sm:text-lg">{isSomali ? 'Baro luqad cusub, ku hadal xaalado dhab ah, hagaaji dhawaaqa, oo dhis kalsooni.' : 'A focused learning system that combines CEFR lessons, real conversation, pronunciation practice, and review that remembers what matters.'}</p>
+            <p className="mt-7 max-w-xl text-base leading-7 text-text-secondary sm:text-lg">{isSomali ? 'Baro luqad cusub, ku hadal xaalado dhab ah, hagaaji dhawaaqa, oo dhis kalsooni.' : 'A practical learning space for the moments you want to handle better: ordering lunch, meeting someone new, or finding the right words at work.'}</p>
             <div className="mt-9 flex flex-wrap gap-3">
               <button onClick={onStartLearning} className="rounded-full bg-primary px-6 py-3.5 text-sm font-bold text-white shadow-elevation-md transition hover:-translate-y-0.5 hover:bg-primary-hover">Start learning free <ArrowRight className="ml-2 inline h-4 w-4" /></button>
               <button onClick={() => scrollTo('how-it-works')} className="rounded-full border border-app-border bg-app-surface px-6 py-3.5 text-sm font-bold text-text-primary"><Play className="mr-2 inline h-4 w-4 text-primary" />See how it works</button>
@@ -124,9 +124,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ appLang, targetLang, o
 
         <section id="conversation" className="border-y border-app-border bg-text-primary text-app-bg">
           <div className="mx-auto max-w-7xl px-5 py-20 sm:px-8">
-            <div className="max-w-2xl"><p className="text-xs font-bold uppercase tracking-[.22em] text-primary">AI conversation</p><h2 className="mt-4 font-display text-4xl font-extrabold tracking-[-.04em] sm:text-5xl">Practice the moments you care about.</h2><p className="mt-5 text-sm leading-7 opacity-65">Pick a situation and start talking. Muke-E keeps the conversation at your level and turns useful corrections into future practice.</p></div>
+            <div className="max-w-2xl"><p className="text-xs font-bold uppercase tracking-[.22em] text-primary">Real-life practice</p><h2 className="mt-4 font-display text-4xl font-extrabold tracking-[-.04em] sm:text-5xl">Practice the moments you care about.</h2><p className="mt-5 text-sm leading-7 opacity-65">Pick a situation and start talking. Muke-E keeps the conversation at your level and turns useful corrections into future practice.</p></div>
             <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{scenarios.map(item => <button key={item.id} onClick={() => setScenario(item.id)} className={`rounded-2xl border p-5 text-left transition ${scenario === item.id ? 'border-primary bg-primary/15' : 'border-white/10 bg-white/5 hover:border-white/20'}`}><span className="text-xs font-bold opacity-45">SCENARIO</span><h3 className="mt-3 text-base font-bold">{item.title}</h3><p className="mt-2 text-sm leading-6 opacity-60">{item.prompt}</p></button>)}</div>
-            <div className="mt-5 rounded-3xl bg-app-surface p-6 text-text-primary sm:p-8"><div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-[.18em] text-primary">AI roleplay ready</p><h3 className="mt-2 text-2xl font-bold">{activeScenario.title}</h3><p className="mt-2 max-w-xl text-sm leading-6 text-text-secondary">{activeScenario.prompt}</p></div><button onClick={onStartLearning} className="shrink-0 rounded-full bg-text-primary px-5 py-3 text-sm font-bold text-app-bg">Start speaking <ArrowRight className="ml-1 inline h-4 w-4" /></button></div></div>
+            <div className="mt-5 rounded-3xl bg-app-surface p-6 text-text-primary sm:p-8"><div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-[.18em] text-primary">A conversation worth having</p><h3 className="mt-2 text-2xl font-bold">{activeScenario.title}</h3><p className="mt-2 max-w-xl text-sm leading-6 text-text-secondary">{activeScenario.prompt}</p></div><button onClick={onStartLearning} className="shrink-0 rounded-full bg-text-primary px-5 py-3 text-sm font-bold text-app-bg">Start speaking <ArrowRight className="ml-1 inline h-4 w-4" /></button></div></div>
           </div>
         </section>
 
