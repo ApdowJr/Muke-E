@@ -1,1 +1,435 @@
-import React, { useState, useEffect, useRef } from 'react';\nimport {\n  Mic,\n  MicOff,\n  Send,\n  Volume2,\n  Sparkles,\n  AlertCircle,\n} from 'lucide-react';\nimport { AppLanguage, ChatMessage, SkillLevel, TargetLanguageCode } from '../types';\nimport { CONVERSATION_SCENARIOS, SUPPORTED_LANGUAGES } from '../utils/languages';\nimport { RobustVoiceRecorder, speakText } from '../utils/speech';\nimport { VoiceCircle } from './VoiceCircle';\nimport { MokeAvatar } from './MokeAvatar';\nimport { cn } from '../utils/cn';\n\ninterface ConversationViewProps {\n  targetLang: TargetLanguageCode;\n  appLang: AppLanguage;\n  level: SkillLevel;\n  speechSpeed: number;\n  autoPlayAudio: boolean;\n  onSendToPronunciationLab: (phrase: string) => void;\n  onIncrementPractice: () => void;\n  onTriggerMicPermissionModal: () => void;\n}\n\nexport const ConversationView: React.FC<ConversationViewProps> = ({\n  targetLang,\n  appLang,\n  level,\n  speechSpeed,\n  autoPlayAudio,\n  onSendToPronunciationLab,\n  onIncrementPractice,\n  onTriggerMicPermissionModal,\n}) => {\n  const currentLang = SUPPORTED_LANGUAGES[targetLang];\n  const isSomali = appLang === 'so';\n\n  const [activeScenarioId, setActiveScenarioId] = useState('general');\n  const [messages, setMessages] = useState<ChatMessage[]>([]);\n  const [inputText, setInputText] = useState('');\n  const [isListening, setIsListening] = useState(false);\n  const [isProcessingAudio, setIsProcessingAudio] = useState(false);\n  const [interimTranscript, setInterimTranscript] = useState('');\n  const [isLoading, setIsLoading] = useState(false);\n  const [micStream, setMicStream] = useState<MediaStream | null>(null);\n  const [micErrorMessage, setMicErrorMessage] = useState<string | null>(null);\n  const [playingMsgId, setPlayingMsgId] = useState<string | null>(null);\n\n  const voiceRecorderRef = useRef<RobustVoiceRecorder | null>(null);\n  const chatScrollRef = useRef<HTMLDivElement | null>(null);\n\n  const activeScenario =\n    CONVERSATION_SCENARIOS.find((s) => s.id === activeScenarioId) ||\n    CONVERSATION_SCENARIOS[0];\n\n  useEffect(() => {\n    const welcome = currentLang.welcomeMessage;\n    const initialMsg: ChatMessage = {\n      id: 'welcome-' + Date.now(),\n      role: 'tutor',\n      text: welcome,\n      translation: isSomali ? currentLang.welcomeMessageSo : 'Welcome! Let us speak together.',\n      suggestedReplies: currentLang.samplePhrases.slice(0, 3).map((sp) => ({\n        text: sp.phrase,\n        translation: isSomali ? sp.translationSo : sp.translationEn,\n      })),\n      timestamp: Date.now(),\n    };\n\n    setMessages([initialMsg]);\n\n    if (autoPlayAudio) {\n      handleSpeak(initialMsg.text, initialMsg.id);\n    }\n  }, [targetLang, activeScenarioId]);\n\n  useEffect(() => {\n    if (chatScrollRef.current) {\n      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;\n    }\n  }, [messages, interimTranscript, isLoading, isProcessingAudio]);\n\n  useEffect(() => {\n    return () => {\n      if (voiceRecorderRef.current) voiceRecorderRef.current.cancel();\n      if (micStream) micStream.getTracks().forEach((t) => t.stop());\n    };\n  }, []);\n\n  const handleSpeak = async (text: string, msgId?: string) => {\n    if (msgId) setPlayingMsgId(msgId);\n    try {\n      await speakText(text, currentLang.speechCode, currentLang.name, speechSpeed);\n    } finally {\n      if (msgId) setPlayingMsgId(null);\n    }\n  };\n\n  const handleToggleMic = async () => {\n    setMicErrorMessage(null);\n\n    if (isListening) {\n      setIsListening(false);\n      setIsProcessingAudio(true);\n\n      try {\n        if (voiceRecorderRef.current) {\n          const result = await voiceRecorderRef.current.stop();\n          setInterimTranscript('');\n          setMicStream(null);\n          setIsProcessingAudio(false);\n\n          if (result.text && result.text.trim()) {\n            await handleSendMessage(result.text.trim());\n          } else {\n            setMicErrorMessage(\n              isSomali\n                ? 'Cod cad lama maqal. Fadlan ku hadal mar kale.'\n                : 'No speech detected. Please speak into the mic.'\n            );\n          }\n        }\n      } catch (err) {\n        setIsProcessingAudio(false);\n      }\n    } else {\n      try {\n        const recorder = new RobustVoiceRecorder(\n          currentLang.speechCode,\n          currentLang.name,\n          (interim) => {\n            setInterimTranscript(interim);\n          },\n          (errType) => {\n            if (errType === 'permission_denied') {\n              setMicErrorMessage(\n                isSomali\n                  ? 'Fadlan browser-kaaga ka oggolow makarafoonka si aad ugu hadasho.'\n                  : 'Please allow microphone access in your browser to speak.'\n              );\n              onTriggerMicPermissionModal();\n            } else {\n              setMicErrorMessage(\n                isSomali ? 'Makarafoonka lama helin.' : 'Microphone not detected.'\n              );\n            }\n            setIsListening(false);\n            setMicStream(null);\n          }\n        );\n\n        voiceRecorderRef.current = recorder;\n        const stream = await recorder.start();\n        setMicStream(stream);\n        setIsListening(true);\n      } catch (err) {\n        setIsListening(false);\n        setMicStream(null);\n      }\n    }\n  };\n\n  const handleSendMessage = async (rawText?: string) => {\n    const text = (rawText || inputText).trim();\n    if (!text || isLoading) return;\n\n    setInputText('');\n    setInterimTranscript('');\n    setMicErrorMessage(null);\n\n    const userMsg: ChatMessage = {\n      id: 'user-' + Date.now(),\n      role: 'user',\n      text,\n      timestamp: Date.now(),\n    };\n\n    const newMessages = [...messages, userMsg];\n    setMessages(newMessages);\n    setIsLoading(true);\n    onIncrementPractice();\n\n    try {\n      const scenarioTitle = isSomali ? activeScenario.titleSo : activeScenario.titleEn;\n      const res = await fetch('/api/chat', {\n        method: 'POST',\n        headers: { 'Content-Type': 'application/json' },\n        body: JSON.stringify({\n          messages: newMessages.slice(-6).map((m) => ({ role: m.role, text: m.text })),\n          targetLanguage: currentLang.name,\n          nativeLanguage: isSomali ? 'Somali' : 'English',\n          level,\n          scenario: `${scenarioTitle}`,\n          tutorName: 'Moke E',\n        }),\n      });\n\n      if (!res.ok) throw new Error('Network error');\n      const data = await res.json();\n\n      const tutorMsg: ChatMessage = {\n        id: 'tutor-' + Date.now(),\n        role: 'tutor',\n        text: data.reply || \"That's good! Let's continue.\",\n        translation: data.translation,\n        phonetic: data.phonetic,\n        feedback: data.feedback,\n        suggestedReplies: data.suggestedReplies || [],\n        timestamp: Date.now(),\n      };\n\n      setMessages((prev) => [...prev, tutorMsg]);\n\n      if (autoPlayAudio) {\n        await handleSpeak(tutorMsg.text, tutorMsg.id);\n      }\n    } catch (e) {\n      const fallbackMsg: ChatMessage = {\n        id: 'fallback-' + Date.now(),\n        role: 'tutor',\n        text: 'I understood what you said! Let us continue practicing ' + currentLang.name + '.',\n        translation: isSomali\n          ? 'Waan fahmay waxaad tiri! Aan sii wadno barashada ' + currentLang.nameSo + '.'\n          : 'I understood! Let us keep speaking.',\n        timestamp: Date.now(),\n      };\n      setMessages((prev) => [...prev, fallbackMsg]);\n    } finally {\n      setIsLoading(false);\n    }\n  };\n\n  return (\n    <div className=\"flex flex-col gap-4\">\n      {/* Scenario Selector - Horizontal Scroll */}\n      <div className=\"flex items-center gap-2 overflow-x-auto pb-2 -mx-3 px-3 sm:-mx-4 sm:px-4 lg:-mx-6 lg:px-6 scrollbar-hide\">\n        <span className=\"text-xs font-semibold text-slate-400 whitespace-nowrap\">\n          {isSomali ? 'Mawduuca:' : 'Topic:'}\n        </span>\n        {CONVERSATION_SCENARIOS.map((sc) => {\n          const isSelected = sc.id === activeScenarioId;\n          return (\n            <button\n              key={sc.id}\n              onClick={() => setActiveScenarioId(sc.id)}\n              className={cn(\n                'px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors flex items-center gap-1.5 flex-shrink-0',\n                isSelected\n                  ? 'bg-blue-600 text-white shadow-sm'\n                  : 'bg-slate-800/80 text-slate-300 hover:bg-slate-750 hover:text-white'\n              )}\n            >\n              <span>{sc.icon}</span>\n              <span>{isSomali ? sc.titleSo : sc.titleEn}</span>\n            </button>\n          );\n        })}\n      </div>\n\n      {/* Main Conversation Panel */}\n      <div className=\"rounded-2xl border border-white/10 bg-slate-900/80 overflow-hidden flex flex-col h-[calc(100vh-360px)] max-h-[600px] shadow-md\">\n        {/* Messages Area */}\n        <div\n          ref={chatScrollRef}\n          className=\"flex-1 overflow-y-auto space-y-4 p-4 sm:p-5\"\n        >\n          {messages.map((msg) => {\n            const isUser = msg.role === 'user';\n            const isPlaying = playingMsgId === msg.id;\n\n            return (\n              <div key={msg.id} className={cn('flex gap-3', isUser ? 'justify-end' : 'justify-start')}>\n                {!isUser && (\n                  <div className=\"flex-shrink-0\">\n                    <MokeAvatar size=\"sm\" isSpeaking={isPlaying} className=\"shadow-sm\" />\n                  </div>\n                )}\n\n                <div className={cn('max-w-[85%] sm:max-w-[70%] space-y-2', isUser && 'flex flex-col items-end')}\n                >\n                  <div\n                    className={cn(\n                      'rounded-2xl px-4 py-3 text-sm leading-relaxed',\n                      isUser\n                        ? 'bg-blue-600 text-white rounded-br-none'\n                        : 'bg-slate-800 text-slate-100 border border-slate-700/50 rounded-bl-none'\n                    )}\n                  >\n                    <p className=\"font-medium\">{msg.text}</p>\n                    {!isUser && msg.translation && (\n                      <p className=\"mt-2 pt-2 border-t border-slate-700/50 text-xs text-slate-300\">\n                        {msg.translation}\n                      </p>\n                    )}\n                  </div>\n\n                  {/* Tutor Actions */}\n                  {!isUser && (\n                    <div className=\"flex items-center gap-3 text-xs text-slate-400 px-1\">\n                      <button\n                        onClick={() => handleSpeak(msg.text, msg.id)}\n                        className={cn(\n                          'hover:text-blue-400 flex items-center gap-1.5 font-medium transition-colors',\n                          isPlaying && 'text-blue-400'\n                        )}\n                      >\n                        <Volume2 className=\"w-3.5 h-3.5\" />\n                        <span>{isPlaying ? (isSomali ? 'Wuu hadlayaa...' : 'Playing...') : (isSomali ? 'Dhegayso' : 'Listen')}</span>\n                      </button>\n                      <button\n                        onClick={() => onSendToPronunciationLab(msg.text)}\n                        className=\"hover:text-blue-400 flex items-center gap-1.5 font-medium transition-colors ml-auto\"\n                      >\n                        <Sparkles className=\"w-3 h-3 text-blue-400\" />\n                        <span>{isSomali ? 'Ku celi' : 'Practice'}</span>\n                      </button>\n                    </div>\n                  )}\n\n                  {/* Suggested Replies */}\n                  {!isUser && msg.suggestedReplies && msg.suggestedReplies.length > 0 && (\n                    <div className=\"flex flex-wrap gap-1.5 pt-1\">\n                      {msg.suggestedReplies.map((r, idx) => (\n                        <button\n                          key={idx}\n                          onClick={() => handleSendMessage(r.text)}\n                          className=\"text-xs bg-slate-800/80 hover:bg-slate-750 text-slate-300 hover:text-white border border-slate-700/50 rounded-lg px-3 py-1.5 transition-colors\"\n                        >\n                          \"{r.text}\"\n                        </button>\n                      ))}\n                    </div>\n                  )}\n                </div>\n              </div>\n            );\n          })}\n\n          {/* Listening State */}\n          {isListening && (\n            <div className=\"flex justify-end\">\n              <div className=\"bg-blue-950/40 border border-blue-500/30 text-blue-100 rounded-2xl rounded-br-none p-4 max-w-[70%] text-sm space-y-1\">\n                <div className=\"flex items-center gap-2 text-xs font-semibold text-blue-400\">\n                  <span className=\"w-2 h-2 rounded-full bg-rose-500 animate-ping\" />\n                  <span>{isSomali ? 'Wuu dhagaysanayaa...' : 'Listening...'}</span>\n                </div>\n                <p className=\"font-semibold text-white\">\n                  {interimTranscript || (isSomali ? 'Ku hadal...' : 'Speak now...')}\n                </p>\n              </div>\n            </div>\n          )}\n\n          {/* Processing State */}\n          {isProcessingAudio && (\n            <div className=\"flex justify-end\">\n              <div className=\"bg-slate-800 border border-slate-700 text-slate-300 rounded-2xl p-3 text-xs flex items-center gap-2\">\n                <span className=\"w-2 h-2 rounded-full bg-blue-400 animate-pulse\" />\n                <span>{isSomali ? 'Codkaaga ayaa la qorayaa...' : 'Transcribing...'}</span>\n              </div>\n            </div>\n          )}\n\n          {/* AI Thinking */}\n          {isLoading && (\n            <div className=\"flex items-center gap-2 text-slate-400 text-xs\">\n              <MokeAvatar size=\"sm\" isSpeaking={true} />\n              <span>{isSomali ? 'Moke E wuu ka jawaabayaa...' : 'Moke E is answering...'}</span>\n            </div>\n          )}\n        </div>\n\n        {/* Error Banner */}\n        {micErrorMessage && (\n          <div className=\"bg-amber-950/40 border-t border-amber-800/30 px-4 py-2.5 text-xs text-amber-200 flex items-center justify-between gap-3\">\n            <span className=\"flex items-center gap-1.5 flex-1\">\n              <AlertCircle className=\"w-4 h-4 text-amber-400 flex-shrink-0\" />\n              <span>{micErrorMessage}</span>\n            </span>\n            <button\n              onClick={() => setMicErrorMessage(null)}\n              className=\"text-amber-400 hover:text-amber-300\"\n            >\n              ✕\n            </button>\n          </div>\n        )}\n\n        {/* Composer */}\n        <div className=\"border-t border-slate-800 bg-slate-900 p-4 space-y-2\">\n          <form\n            onSubmit={(e) => {\n              e.preventDefault();\n              handleSendMessage();\n            }}\n            className=\"flex items-center gap-2 sm:gap-3\"\n          >\n            <button\n              type=\"button\"\n              onClick={handleToggleMic}\n              disabled={isProcessingAudio}\n              className={cn(\n                'p-3 sm:p-3.5 rounded-2xl flex items-center justify-center transition-all flex-shrink-0',\n                isListening\n                  ? 'bg-rose-600 text-white ring-4 ring-rose-400/30 animate-pulse'\n                  : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20 active:scale-95'\n              )}\n            >\n              {isListening ? <MicOff className=\"w-5 h-5\" /> : <Mic className=\"w-5 h-5\" />}\n            </button>\n\n            <input\n              type=\"text\"\n              value={inputText}\n              onChange={(e) => setInputText(e.target.value)}\n              placeholder={isSomali ? 'Qor ama hadal...' : 'Type or speak...'}\n              className=\"flex-1 bg-slate-800 border border-slate-700 focus:border-blue-500 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30\"\n            />\n\n            <button\n              type=\"submit\"\n              disabled={!inputText.trim() || isLoading}\n              className=\"p-3 sm:p-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white border-0 transition-colors flex-shrink-0\"\n            >\n              <Send className=\"w-5 h-5\" />\n            </button>\n          </form>\n        </div>\n      </div>\n    </div>\n  );\n};\n
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  Mic,
+  MicOff,
+  Send,
+  Volume2,
+  Sparkles,
+  AlertCircle,
+} from 'lucide-react';
+import { AppLanguage, ChatMessage, SkillLevel, TargetLanguageCode } from '../types';
+import { CONVERSATION_SCENARIOS, SUPPORTED_LANGUAGES } from '../utils/languages';
+import { RobustVoiceRecorder, speakText } from '../utils/speech';
+import { VoiceCircle } from './VoiceCircle';
+import { MokeAvatar } from './MokeAvatar';
+import { cn } from '../utils/cn';
+
+interface ConversationViewProps {
+  targetLang: TargetLanguageCode;
+  appLang: AppLanguage;
+  level: SkillLevel;
+  speechSpeed: number;
+  autoPlayAudio: boolean;
+  onSendToPronunciationLab: (phrase: string) => void;
+  onIncrementPractice: () => void;
+  onTriggerMicPermissionModal: () => void;
+}
+
+export const ConversationView: React.FC<ConversationViewProps> = ({
+  targetLang,
+  appLang,
+  level,
+  speechSpeed,
+  autoPlayAudio,
+  onSendToPronunciationLab,
+  onIncrementPractice,
+  onTriggerMicPermissionModal,
+}) => {
+  const currentLang = SUPPORTED_LANGUAGES[targetLang];
+  const isSomali = appLang === 'so';
+
+  const [activeScenarioId, setActiveScenarioId] = useState('general');
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [inputText, setInputText] = useState('');
+  const [isListening, setIsListening] = useState(false);
+  const [isProcessingAudio, setIsProcessingAudio] = useState(false);
+  const [interimTranscript, setInterimTranscript] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [micStream, setMicStream] = useState<MediaStream | null>(null);
+  const [micErrorMessage, setMicErrorMessage] = useState<string | null>(null);
+  const [playingMsgId, setPlayingMsgId] = useState<string | null>(null);
+
+  const voiceRecorderRef = useRef<RobustVoiceRecorder | null>(null);
+  const chatScrollRef = useRef<HTMLDivElement | null>(null);
+
+  const activeScenario =
+    CONVERSATION_SCENARIOS.find((s) => s.id === activeScenarioId) ||
+    CONVERSATION_SCENARIOS[0];
+
+  useEffect(() => {
+    const welcome = currentLang.welcomeMessage;
+    const initialMsg: ChatMessage = {
+      id: 'welcome-' + Date.now(),
+      role: 'tutor',
+      text: welcome,
+      translation: isSomali ? currentLang.welcomeMessageSo : 'Welcome! Let us speak together.',
+      suggestedReplies: currentLang.samplePhrases.slice(0, 3).map((sp) => ({
+        text: sp.phrase,
+        translation: isSomali ? sp.translationSo : sp.translationEn,
+      })),
+      timestamp: Date.now(),
+    };
+
+    setMessages([initialMsg]);
+
+    if (autoPlayAudio) {
+      handleSpeak(initialMsg.text, initialMsg.id);
+    }
+  }, [targetLang, activeScenarioId]);
+
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+  }, [messages, interimTranscript, isLoading, isProcessingAudio]);
+
+  useEffect(() => {
+    return () => {
+      if (voiceRecorderRef.current) voiceRecorderRef.current.cancel();
+      if (micStream) micStream.getTracks().forEach((t) => t.stop());
+    };
+  }, []);
+
+  const handleSpeak = async (text: string, msgId?: string) => {
+    if (msgId) setPlayingMsgId(msgId);
+    try {
+      await speakText(text, currentLang.speechCode, currentLang.name, speechSpeed);
+    } finally {
+      if (msgId) setPlayingMsgId(null);
+    }
+  };
+
+  const handleToggleMic = async () => {
+    setMicErrorMessage(null);
+
+    if (isListening) {
+      setIsListening(false);
+      setIsProcessingAudio(true);
+
+      try {
+        if (voiceRecorderRef.current) {
+          const result = await voiceRecorderRef.current.stop();
+          setInterimTranscript('');
+          setMicStream(null);
+          setIsProcessingAudio(false);
+
+          if (result.text && result.text.trim()) {
+            await handleSendMessage(result.text.trim());
+          } else {
+            setMicErrorMessage(
+              isSomali
+                ? 'Cod cad lama maqal. Fadlan ku hadal mar kale.'
+                : 'No speech detected. Please speak into the mic.'
+            );
+          }
+        }
+      } catch (err) {
+        setIsProcessingAudio(false);
+      }
+    } else {
+      try {
+        const recorder = new RobustVoiceRecorder(
+          currentLang.speechCode,
+          currentLang.name,
+          (interim) => {
+            setInterimTranscript(interim);
+          },
+          (errType) => {
+            if (errType === 'permission_denied') {
+              setMicErrorMessage(
+                isSomali
+                  ? 'Fadlan browser-kaaga ka oggolow makarafoonka si aad ugu hadasho.'
+                  : 'Please allow microphone access in your browser to speak.'
+              );
+              onTriggerMicPermissionModal();
+            } else {
+              setMicErrorMessage(
+                isSomali ? 'Makarafoonka lama helin.' : 'Microphone not detected.'
+              );
+            }
+            setIsListening(false);
+            setMicStream(null);
+          }
+        );
+
+        voiceRecorderRef.current = recorder;
+        const stream = await recorder.start();
+        setMicStream(stream);
+        setIsListening(true);
+      } catch (err) {
+        setIsListening(false);
+        setMicStream(null);
+      }
+    }
+  };
+
+  const handleSendMessage = async (rawText?: string) => {
+    const text = (rawText || inputText).trim();
+    if (!text || isLoading) return;
+
+    setInputText('');
+    setInterimTranscript('');
+    setMicErrorMessage(null);
+
+    const userMsg: ChatMessage = {
+      id: 'user-' + Date.now(),
+      role: 'user',
+      text,
+      timestamp: Date.now(),
+    };
+
+    const newMessages = [...messages, userMsg];
+    setMessages(newMessages);
+    setIsLoading(true);
+    onIncrementPractice();
+
+    try {
+      const scenarioTitle = isSomali ? activeScenario.titleSo : activeScenario.titleEn;
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: newMessages.slice(-6).map((m) => ({ role: m.role, text: m.text })),
+          targetLanguage: currentLang.name,
+          nativeLanguage: isSomali ? 'Somali' : 'English',
+          level,
+          scenario: `${scenarioTitle}`,
+          tutorName: 'Moke E',
+        }),
+      });
+
+      if (!res.ok) throw new Error('Network error');
+      const data = await res.json();
+
+      const tutorMsg: ChatMessage = {
+        id: 'tutor-' + Date.now(),
+        role: 'tutor',
+        text: data.reply || "That's good! Let's continue.",
+        translation: data.translation,
+        phonetic: data.phonetic,
+        feedback: data.feedback,
+        suggestedReplies: data.suggestedReplies || [],
+        timestamp: Date.now(),
+      };
+
+      setMessages((prev) => [...prev, tutorMsg]);
+
+      if (autoPlayAudio) {
+        await handleSpeak(tutorMsg.text, tutorMsg.id);
+      }
+    } catch (e) {
+      const fallbackMsg: ChatMessage = {
+        id: 'fallback-' + Date.now(),
+        role: 'tutor',
+        text: 'I understood what you said! Let us continue practicing ' + currentLang.name + '.',
+        translation: isSomali
+          ? 'Waan fahmay waxaad tiri! Aan sii wadno barashada ' + currentLang.nameSo + '.'
+          : 'I understood! Let us keep speaking.',
+        timestamp: Date.now(),
+      };
+      setMessages((prev) => [...prev, fallbackMsg]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Scenario Selector - Horizontal Scroll */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-3 px-3 sm:-mx-4 sm:px-4 lg:-mx-6 lg:px-6 scrollbar-hide">
+        <span className="text-xs font-semibold text-slate-400 whitespace-nowrap">
+          {isSomali ? 'Mawduuca:' : 'Topic:'}
+        </span>
+        {CONVERSATION_SCENARIOS.map((sc) => {
+          const isSelected = sc.id === activeScenarioId;
+          return (
+            <button
+              key={sc.id}
+              onClick={() => setActiveScenarioId(sc.id)}
+              className={cn(
+                'px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors flex items-center gap-1.5 flex-shrink-0',
+                isSelected
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'bg-slate-800/80 text-slate-300 hover:bg-slate-750 hover:text-white'
+              )}
+            >
+              <span>{sc.icon}</span>
+              <span>{isSomali ? sc.titleSo : sc.titleEn}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Main Conversation Panel */}
+      <div className="rounded-2xl border border-white/10 bg-slate-900/80 overflow-hidden flex flex-col h-[calc(100vh-360px)] max-h-[600px] shadow-md">
+        {/* Messages Area */}
+        <div
+          ref={chatScrollRef}
+          className="flex-1 overflow-y-auto space-y-4 p-4 sm:p-5"
+        >
+          {messages.map((msg) => {
+            const isUser = msg.role === 'user';
+            const isPlaying = playingMsgId === msg.id;
+
+            return (
+              <div key={msg.id} className={cn('flex gap-3', isUser ? 'justify-end' : 'justify-start')}>
+                {!isUser && (
+                  <div className="flex-shrink-0">
+                    <MokeAvatar size="sm" isSpeaking={isPlaying} className="shadow-sm" />
+                  </div>
+                )}
+
+                <div className={cn('max-w-[85%] sm:max-w-[70%] space-y-2', isUser && 'flex flex-col items-end')}
+                >
+                  <div
+                    className={cn(
+                      'rounded-2xl px-4 py-3 text-sm leading-relaxed',
+                      isUser
+                        ? 'bg-blue-600 text-white rounded-br-none'
+                        : 'bg-slate-800 text-slate-100 border border-slate-700/50 rounded-bl-none'
+                    )}
+                  >
+                    <p className="font-medium">{msg.text}</p>
+                    {!isUser && msg.translation && (
+                      <p className="mt-2 pt-2 border-t border-slate-700/50 text-xs text-slate-300">
+                        {msg.translation}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Tutor Actions */}
+                  {!isUser && (
+                    <div className="flex items-center gap-3 text-xs text-slate-400 px-1">
+                      <button
+                        onClick={() => handleSpeak(msg.text, msg.id)}
+                        className={cn(
+                          'hover:text-blue-400 flex items-center gap-1.5 font-medium transition-colors',
+                          isPlaying && 'text-blue-400'
+                        )}
+                      >
+                        <Volume2 className="w-3.5 h-3.5" />
+                        <span>{isPlaying ? (isSomali ? 'Wuu hadlayaa...' : 'Playing...') : (isSomali ? 'Dhegayso' : 'Listen')}</span>
+                      </button>
+                      <button
+                        onClick={() => onSendToPronunciationLab(msg.text)}
+                        className="hover:text-blue-400 flex items-center gap-1.5 font-medium transition-colors ml-auto"
+                      >
+                        <Sparkles className="w-3 h-3 text-blue-400" />
+                        <span>{isSomali ? 'Ku celi' : 'Practice'}</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Suggested Replies */}
+                  {!isUser && msg.suggestedReplies && msg.suggestedReplies.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {msg.suggestedReplies.map((r, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => handleSendMessage(r.text)}
+                          className="text-xs bg-slate-800/80 hover:bg-slate-750 text-slate-300 hover:text-white border border-slate-700/50 rounded-lg px-3 py-1.5 transition-colors"
+                        >
+                          "{r.text}"
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Listening State */}
+          {isListening && (
+            <div className="flex justify-end">
+              <div className="bg-blue-950/40 border border-blue-500/30 text-blue-100 rounded-2xl rounded-br-none p-4 max-w-[70%] text-sm space-y-1">
+                <div className="flex items-center gap-2 text-xs font-semibold text-blue-400">
+                  <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                  <span>{isSomali ? 'Wuu dhagaysanayaa...' : 'Listening...'}</span>
+                </div>
+                <p className="font-semibold text-white">
+                  {interimTranscript || (isSomali ? 'Ku hadal...' : 'Speak now...')}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Processing State */}
+          {isProcessingAudio && (
+            <div className="flex justify-end">
+              <div className="bg-slate-800 border border-slate-700 text-slate-300 rounded-2xl p-3 text-xs flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+                <span>{isSomali ? 'Codkaaga ayaa la qorayaa...' : 'Transcribing...'}</span>
+              </div>
+            </div>
+          )}
+
+          {/* AI Thinking */}
+          {isLoading && (
+            <div className="flex items-center gap-2 text-slate-400 text-xs">
+              <MokeAvatar size="sm" isSpeaking={true} />
+              <span>{isSomali ? 'Moke E wuu ka jawaabayaa...' : 'Moke E is answering...'}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Error Banner */}
+        {micErrorMessage && (
+          <div className="bg-amber-950/40 border-t border-amber-800/30 px-4 py-2.5 text-xs text-amber-200 flex items-center justify-between gap-3">
+            <span className="flex items-center gap-1.5 flex-1">
+              <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+              <span>{micErrorMessage}</span>
+            </span>
+            <button
+              onClick={() => setMicErrorMessage(null)}
+              className="text-amber-400 hover:text-amber-300"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
+        {/* Composer */}
+        <div className="border-t border-slate-800 bg-slate-900 p-4 space-y-2">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSendMessage();
+            }}
+            className="flex items-center gap-2 sm:gap-3"
+          >
+            <button
+              type="button"
+              onClick={handleToggleMic}
+              disabled={isProcessingAudio}
+              className={cn(
+                'p-3 sm:p-3.5 rounded-2xl flex items-center justify-center transition-all flex-shrink-0',
+                isListening
+                  ? 'bg-rose-600 text-white ring-4 ring-rose-400/30 animate-pulse'
+                  : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20 active:scale-95'
+              )}
+            >
+              {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+            </button>
+
+            <input
+              type="text"
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              placeholder={isSomali ? 'Qor ama hadal...' : 'Type or speak...'}
+              className="flex-1 bg-slate-800 border border-slate-700 focus:border-blue-500 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            />
+
+            <button
+              type="submit"
+              disabled={!inputText.trim() || isLoading}
+              className="p-3 sm:p-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white border-0 transition-colors flex-shrink-0"
+            >
+              <Send className="w-5 h-5" />
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
