@@ -36,14 +36,30 @@ function strongestWeakness(weaknesses: LearnerWeakness[]): LearnerWeakness | nul
   return [...weaknesses].sort((a, b) => b.count - a.count || b.lastSeen - a.lastSeen)[0] || null;
 }
 
+export interface AdaptiveSessionSignals {
+  focusSuccesses?: number;
+  turns?: number;
+  corrections?: number;
+  taskSuccesses?: number;
+  taskPartials?: number;
+  taskAttempts?: number;
+}
+
 export function getAdaptivePracticeContext(
   level: SkillLevel,
-  sessionSuccesses = 0,
-  sessionTurns = 0,
-  sessionCorrections = 0,
+  session: AdaptiveSessionSignals = {},
 ): AdaptivePracticeContext {
   const progress = getStoredProgress();
   const weaknesses = getLearnerWeaknesses();
+  const sessionSuccesses = session.focusSuccesses ?? 0;
+  const sessionTurns = session.turns ?? 0;
+  const sessionCorrections = session.corrections ?? 0;
+  const taskSuccesses = session.taskSuccesses ?? 0;
+  const taskPartials = session.taskPartials ?? 0;
+  const taskAttempts = session.taskAttempts ?? 0;
+  const taskAccuracy = taskAttempts > 0
+    ? Math.round(((taskSuccesses + taskPartials * 0.5) / taskAttempts) * 100)
+    : 0;
   const skill = weakestSkill(progress.skills);
   const skillState = progress.skills[skill];
   const weakness = strongestWeakness(weaknesses);
@@ -62,9 +78,9 @@ export function getAdaptivePracticeContext(
     : 0;
 
   const recentPerformance: AdaptivePracticeContext['recentPerformance'] =
-    sessionTurns >= 3 && sessionAccuracy < 55
+    (taskAttempts >= 2 && taskAccuracy < 50) || (sessionTurns >= 3 && sessionAccuracy < 55)
       ? 'struggling'
-      : (sessionSuccesses >= 2 || (sessionTurns >= 3 && sessionAccuracy >= 85) || baseline >= 85)
+      : (taskAttempts >= 2 && taskAccuracy >= 85) || sessionSuccesses >= 2 || (sessionTurns >= 3 && sessionAccuracy >= 85) || baseline >= 85
         ? 'strong'
         : sessionSuccesses === 0 && baseline > 0 && baseline < 65
           ? 'struggling'
