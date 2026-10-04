@@ -7,7 +7,7 @@ import {
   Sparkles,
   AlertCircle,
 } from 'lucide-react';
-import { AppLanguage, ChatMessage, SkillLevel, TargetLanguageCode, LearnerCorrection } from '../types';
+import { AppLanguage, ChatMessage, SkillLevel, TargetLanguageCode, LearnerCorrection, LearningFocus } from '../types';
 import { getLearnerWeaknesses, rememberCorrection, LearnerWeakness } from '../utils/learnerMemory';
 import { CONVERSATION_SCENARIOS, SUPPORTED_LANGUAGES } from '../utils/languages';
 import { RobustVoiceRecorder, speakText } from '../utils/speech';
@@ -24,7 +24,8 @@ interface ConversationViewProps {
   onSendToPronunciationLab: (phrase: string) => void;
   onIncrementPractice: () => void;
   onRecordFeedback?: (feedback: { corrected: boolean; focusArea?: string }) => void;
-  focusPrompt?: string;
+  learningFocus?: LearningFocus | null;
+  onExitFocus?: () => void;
   onTriggerMicPermissionModal: () => void;
 }
 
@@ -38,7 +39,8 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
   onIncrementPractice,
   onRecordFeedback,
   onTriggerMicPermissionModal,
-  focusPrompt,
+  learningFocus,
+  onExitFocus,
 }) => {
   const currentLang = SUPPORTED_LANGUAGES[targetLang];
   const isSomali = appLang === 'so';
@@ -65,11 +67,6 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
   useEffect(() => {
     setLearnerWeaknesses(getLearnerWeaknesses());
   }, []);
-
-  useEffect(() => {
-    if (!focusPrompt) return;
-    setInputText(focusPrompt);
-  }, [focusPrompt]);
 
   useEffect(() => {
     const welcome = currentLang.welcomeMessage;
@@ -210,6 +207,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
           level,
           scenario: `${scenarioTitle}`,
           tutorName: 'Moke E',
+          learningFocus: learningFocus || null,
         }),
       });
 
@@ -258,6 +256,26 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
 
   return (
     <div className="flex flex-col gap-4">
+      {learningFocus && (
+        <div className="flex items-start justify-between gap-3 rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3">
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">
+              {isSomali ? 'Ku celcelin diirad leh' : 'Focused practice'} · {learningFocus.skill}
+            </p>
+            <p className="mt-1 text-sm font-semibold text-text-primary">
+              {learningFocus.weakness} → {learningFocus.correction}
+            </p>
+            <p className="mt-1 text-xs leading-5 text-text-secondary">{learningFocus.practicePrompt}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onExitFocus}
+            className="shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-bold text-text-muted hover:bg-app-surface hover:text-text-primary"
+          >
+            {isSomali ? 'Ka bax' : 'Exit'}
+          </button>
+        </div>
+      )}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide" aria-label={isSomali ? 'Mawduucyada' : 'Conversation topics'}>
         <span className="shrink-0 text-xs font-semibold text-text-muted">{isSomali ? 'Mawduuca' : 'Topic'}</span>
         {CONVERSATION_SCENARIOS.map((sc) => {
