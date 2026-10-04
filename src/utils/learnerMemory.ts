@@ -1,3 +1,5 @@
+import { getNextReview, type ReviewSchedule } from './spacedRepetition';
+
 export interface LearnerCorrection {
   detected: string;
   natural: string;
@@ -13,6 +15,7 @@ export interface LearnerWeakness {
   practicePrompt: string;
   count: number;
   lastSeen: number;
+  review: ReviewSchedule;
 }
 
 const STORAGE_KEY = 'moke_e_learner_memory_v1';
@@ -20,7 +23,14 @@ const STORAGE_KEY = 'moke_e_learner_memory_v1';
 export function getLearnerWeaknesses(): LearnerWeakness[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const parsed = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((item) => ({
+      ...item,
+      review: item?.review && typeof item.review === 'object'
+        ? item.review
+        : getNextReview(0, 0),
+    })).filter((item) => typeof item?.phrase === 'string' && typeof item?.correction === 'string');
   } catch {
     return [];
   }
@@ -39,6 +49,7 @@ export function rememberCorrection(correction: LearnerCorrection): LearnerWeakne
     existing.focusArea = correction.focusArea;
     existing.practicePrompt = correction.practicePrompt || `Practice this naturally: ${correction.natural}`;
     existing.lastSeen = Date.now();
+    existing.review = getNextReview(existing.review?.repetitions ?? 0, existing.review?.intervalDays ?? 0, true);
   } else {
     current.unshift({
       phrase: correction.detected.trim(),
@@ -47,6 +58,7 @@ export function rememberCorrection(correction: LearnerCorrection): LearnerWeakne
       practicePrompt: correction.practicePrompt || `Practice this naturally: ${correction.natural.trim()}`,
       count: 1,
       lastSeen: Date.now(),
+      review: getNextReview(0, 0),
     });
   }
 
