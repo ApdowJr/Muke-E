@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 import { AppLanguage, ChatMessage, SkillLevel, TargetLanguageCode, LearnerCorrection } from '../types';
 import { getLearnerWeaknesses, rememberCorrection, LearnerWeakness } from '../utils/learnerMemory';
-import { recordConversationFeedback } from '../utils/progressTracker';
 import { CONVERSATION_SCENARIOS, SUPPORTED_LANGUAGES } from '../utils/languages';
 import { RobustVoiceRecorder, speakText } from '../utils/speech';
 import { VoiceCircle } from './VoiceCircle';
@@ -24,6 +23,7 @@ interface ConversationViewProps {
   autoPlayAudio: boolean;
   onSendToPronunciationLab: (phrase: string) => void;
   onIncrementPractice: () => void;
+  onRecordFeedback?: (feedback: { corrected: boolean; focusArea?: string }) => void;
   onTriggerMicPermissionModal: () => void;
 }
 
@@ -35,6 +35,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
   autoPlayAudio,
   onSendToPronunciationLab,
   onIncrementPractice,
+  onRecordFeedback,
   onTriggerMicPermissionModal,
 }) => {
   const currentLang = SUPPORTED_LANGUAGES[targetLang];
@@ -224,9 +225,9 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
 
       if (tutorMsg.correction?.detected && tutorMsg.correction.natural) {
         setLearnerWeaknesses(rememberCorrection(tutorMsg.correction));
-        recordConversationFeedback({ corrected: true, focusArea: tutorMsg.correction.focusArea });
+        onRecordFeedback?.({ corrected: true, focusArea: tutorMsg.correction.focusArea });
       } else {
-        recordConversationFeedback({ corrected: false });
+        onRecordFeedback?.({ corrected: false });
       }
 
       if (autoPlayAudio) {
