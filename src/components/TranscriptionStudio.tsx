@@ -144,10 +144,10 @@ export const TranscriptionStudio: React.FC<TranscriptionStudioProps> = ({
     <div className="max-w-2xl mx-auto space-y-6 pb-12">
       {/* Title */}
       <div className="text-center space-y-1">
-        <h2 className="text-2xl font-bold text-white tracking-tight">
+        <h2 className="text-2xl font-bold text-text-primary tracking-tight">
           {isSomali ? 'Qoraalka Hadalka (Dictation)' : 'Speech Dictation'}
         </h2>
-        <p className="text-xs sm:text-sm text-slate-400">
+        <p className="text-xs sm:text-sm text-text-muted">
           {isSomali
             ? 'Hadalkaaga codka ah u rog qoraal toos ah adigoo adeegsanaya makarafoonka.'
             : 'Speak into the mic and have your speech converted to written text.'}
@@ -155,23 +155,23 @@ export const TranscriptionStudio: React.FC<TranscriptionStudioProps> = ({
       </div>
 
       {/* Main Dictation Card */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl text-center">
+      <div className="bg-app-surface border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl text-center">
         {/* Big Mic Button */}
         <div className="flex flex-col items-center justify-center space-y-3">
           <button
             onClick={handleToggleListening}
             className={`w-24 h-24 rounded-full flex items-center justify-center transition-all ${
               isListening
-                ? 'bg-rose-600 text-white ring-8 ring-rose-500/30 animate-pulse scale-105'
+                ? 'bg-danger text-text-primary ring-8 ring-rose-500/30 animate-pulse scale-105'
                 : isProcessing
-                ? 'bg-slate-800 text-slate-400'
-                : 'bg-blue-600 hover:bg-blue-500 text-white shadow-xl shadow-blue-600/30 hover:scale-105 active:scale-95'
+                ? 'bg-app-elevated text-text-muted'
+                : 'bg-primary hover:bg-primary-hover text-text-primary shadow-xl shadow-blue-600/30 hover:scale-105 active:scale-95'
             }`}
           >
             {isListening ? <MicOff className="w-10 h-10" /> : <Mic className="w-10 h-10" />}
           </button>
 
-          <p className="text-sm font-semibold text-slate-200">
+          <p className="text-sm font-semibold text-text-secondary">
             {isListening
               ? isSomali ? 'Wuu dhagaysanayaa... Markaad dhameyso guji halkan' : 'Listening... Tap when done speaking'
               : isProcessing
@@ -182,22 +182,22 @@ export const TranscriptionStudio: React.FC<TranscriptionStudioProps> = ({
 
         {/* Live Speaking Text Display */}
         {isListening && (
-          <div className="p-4 bg-slate-800 rounded-2xl text-slate-100 text-sm font-medium border border-slate-700 animate-pulse">
+          <div className="p-4 bg-app-elevated rounded-2xl text-slate-100 text-sm font-medium border border-app-border animate-pulse">
             "{interimText || (isSomali ? 'Ku hadal cod caadi ah...' : 'Speak clearly...')}"
           </div>
         )}
 
         {/* Mic Error Banner */}
         {micError && (
-          <div className="bg-amber-950/60 border border-amber-800/60 text-amber-200 text-xs rounded-2xl p-4 flex items-center justify-between gap-3 text-left">
+          <div className="bg-amber-950/60 border border-amber-800/60 text-warning text-xs rounded-2xl p-4 flex items-center justify-between gap-3 text-left">
             <div className="flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+              <AlertCircle className="w-4 h-4 text-warning flex-shrink-0" />
               <span>{micError}</span>
             </div>
             {onTriggerMicPermissionModal && (
               <button
                 onClick={onTriggerMicPermissionModal}
-                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs transition-colors flex-shrink-0"
+                className="px-3 py-1.5 bg-primary hover:bg-primary-hover text-text-primary font-bold rounded-xl text-xs transition-colors flex-shrink-0"
               >
                 {isSomali ? 'Fur Makarafoonka' : 'Enable Mic'}
               </button>
@@ -210,12 +210,12 @@ export const TranscriptionStudio: React.FC<TranscriptionStudioProps> = ({
       {transcriptItems.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between px-1">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            <span className="text-xs font-bold text-text-muted uppercase tracking-wider">
               {isSomali ? 'Qoraalladii Hore:' : 'Transcriptions:'}
             </span>
             <button
               onClick={() => setTranscriptItems([])}
-              className="text-xs text-slate-400 hover:text-rose-400 flex items-center gap-1 transition-colors"
+              className="text-xs text-text-muted hover:text-rose-400 flex items-center gap-1 transition-colors"
             >
               <Trash2 className="w-3.5 h-3.5" />
               <span>{isSomali ? 'Tirtir Dhammaan' : 'Clear all'}</span>
@@ -226,18 +226,18 @@ export const TranscriptionStudio: React.FC<TranscriptionStudioProps> = ({
             {transcriptItems.map((item) => (
               <div
                 key={item.id}
-                className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 flex items-start justify-between gap-3 shadow-md"
+                className="bg-app-surface border border-slate-800 rounded-2xl p-4 sm:p-5 flex items-start justify-between gap-3 shadow-md"
               >
                 <div className="space-y-1.5 flex-1">
-                  <span className="text-[11px] text-slate-400 block font-mono">
+                  <span className="text-[11px] text-text-muted block font-mono">
                     {item.timestamp}
                   </span>
-                  <p className="text-white font-medium text-sm sm:text-base leading-relaxed">
+                  <p className="text-text-primary font-medium text-sm sm:text-base leading-relaxed">
                     {item.text}
                   </p>
                   {item.translation && (
-                    <p className="text-xs sm:text-sm text-slate-300 pt-2 border-t border-slate-800">
-                      <span className="text-blue-400 font-semibold mr-1">
+                    <p className="text-xs sm:text-sm text-text-secondary pt-2 border-t border-slate-800">
+                      <span className="text-primary font-semibold mr-1">
                         {isSomali ? 'Turjumaad:' : 'Translation:'}
                       </span>
                       {item.translation}
@@ -248,14 +248,14 @@ export const TranscriptionStudio: React.FC<TranscriptionStudioProps> = ({
                 <div className="flex items-center gap-1.5 flex-shrink-0">
                   <button
                     onClick={() => speakText(item.text, currentLang.speechCode, currentLang.name, 1.0)}
-                    className="p-2 text-slate-400 hover:text-white rounded-lg bg-slate-800 hover:bg-slate-750 transition-colors"
+                    className="p-2 text-text-muted hover:text-text-primary rounded-lg bg-app-elevated hover:bg-slate-750 transition-colors"
                     title="Play Audio"
                   >
                     <Volume2 className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handleCopy(item.text, item.id)}
-                    className="p-2 text-slate-400 hover:text-white rounded-lg bg-slate-800 hover:bg-slate-750 transition-colors"
+                    className="p-2 text-text-muted hover:text-text-primary rounded-lg bg-app-elevated hover:bg-slate-750 transition-colors"
                     title="Copy"
                   >
                     {copiedId === item.id ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
