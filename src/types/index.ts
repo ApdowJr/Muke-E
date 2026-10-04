@@ -33,6 +33,14 @@ export interface LanguageInfo {
 
 export type SkillLevel = 'Beginner' | 'Intermediate' | 'Advanced';
 
+export interface LearnerCorrection {
+  detected: string;
+  natural: string;
+  explanation: string;
+  focusArea: string;
+  practicePrompt: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'tutor';
@@ -40,6 +48,7 @@ export interface ChatMessage {
   translation?: string;
   phonetic?: string;
   feedback?: string;
+  correction?: LearnerCorrection;
   suggestedReplies?: { text: string; translation: string }[];
   audioUrl?: string;
   timestamp: number;
