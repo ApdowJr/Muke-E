@@ -309,6 +309,8 @@ Your Goal:
 - When a correction is useful, explain WHY the natural form is better in ${nativeLanguage}, not merely translate it.
 - Give one short practice prompt that makes the learner use the corrected form.
 - Offer 2 to 3 smart suggested replies in ${targetLanguage} with ${nativeLanguage} translation.
+- If focused practice is active, set focusResult.passed=true only when the learner's NEW sentence correctly applies the target correction; otherwise false. Keep focusResult.feedback short.
+- If focused practice is not active, set focusResult.passed=false and focusResult.feedback to an empty string.
 - If the learner's sentence is already natural, return an empty correction object rather than inventing a mistake.`;
 
     const formattedHistory = messages.map((m: any) => ({
@@ -329,6 +331,14 @@ Your Goal:
             translation: { type: Type.STRING, description: 'Translation in learner base language' },
             phonetic: { type: Type.STRING, description: 'Phonetic or IPA transcription guide' },
             feedback: { type: Type.STRING, description: 'Constructive grammar/vocab feedback' },
+            focusResult: {
+              type: Type.OBJECT,
+              properties: {
+                passed: { type: Type.BOOLEAN, description: 'When focused practice is active, whether the learner successfully used the target correction in this new sentence. Otherwise false.' },
+                feedback: { type: Type.STRING, description: 'Short feedback about focused-practice success in the learner explanation language' },
+              },
+              required: ['passed', 'feedback'],
+            },
             correction: {
               type: Type.OBJECT,
               properties: {
@@ -352,7 +362,7 @@ Your Goal:
               },
             },
           },
-          required: ['reply', 'translation', 'phonetic', 'feedback', 'correction', 'suggestedReplies'],
+          required: ['reply', 'translation', 'phonetic', 'feedback', 'focusResult', 'correction', 'suggestedReplies'],
         },
       },
     });
