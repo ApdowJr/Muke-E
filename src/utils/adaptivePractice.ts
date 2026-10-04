@@ -105,7 +105,7 @@ export function getAdaptivePracticeContext(
     difficultyDelta = 0;
   }
 
-  const masteryTaskType: AdaptiveTaskType =
+  let masteryTaskType: AdaptiveTaskType =
     mode === 'simplify'
       ? 'guided'
       : mode === 'reinforce'
@@ -124,6 +124,7 @@ export function getAdaptivePracticeContext(
   if (masteryState === 'transfer-ready' && mode !== 'simplify') {
     mode = 'challenge';
     difficultyDelta = 1;
+    masteryTaskType = 'challenge';
   }
 
   const levelHint =
