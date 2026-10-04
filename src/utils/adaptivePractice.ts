@@ -1,6 +1,7 @@
 import { SkillLevel } from '../types';
 import { getStoredProgress, SkillKey } from './progressTracker';
 import { getLearnerWeaknesses, LearnerWeakness } from './learnerMemory';
+import { getAdaptiveMastery } from './learnerMastery';
 
 export type AdaptiveMode = 'simplify' | 'reinforce' | 'challenge' | 'steady';
 
@@ -16,6 +17,8 @@ export interface AdaptivePracticeContext {
   sessionTurns: number;
   sessionCorrections: number;
   sessionAccuracy: number;
+  masteryState: 'limited' | 'developing' | 'transfer-ready';
+  masteryTaskType: AdaptiveTaskType;
   guidance: string;
 }
 
@@ -67,6 +70,17 @@ export function getAdaptivePracticeContext(
           ? 'struggling'
           : 'developing';
 
+  const masteryTaskTypes: AdaptiveTaskType[] = ['guided', 'transfer', 'challenge', 'conversation'];
+  const mastery = masteryTaskTypes
+    .map((taskType) => ({ taskType, record: getAdaptiveMastery(skill, taskType) }))
+    .sort((a, b) => b.record.consecutiveSuccesses - a.record.consecutiveSuccesses || b.record.successes - a.record.successes)[0];
+  const masteryState: AdaptivePracticeContext['masteryState'] =
+    mastery.record.consecutiveSuccesses >= 3 && mastery.record.attempts >= 4
+      ? 'transfer-ready'
+      : mastery.record.attempts >= 2 && (mastery.record.successes > 0 || mastery.record.partials > 0)
+        ? 'developing'
+        : 'limited';
+
   const repeatedWeakness = weakness && weakness.count >= 2
     ? weakness.correction
     : '';
@@ -77,7 +91,7 @@ export function getAdaptivePracticeContext(
   if (recentPerformance === 'struggling') {
     mode = 'simplify';
     difficultyDelta = -1;
-  } else if (recentPerformance === 'strong' || sessionSuccesses >= 2) {
+  } else if (masteryState === 'transfer-ready' || recentPerformance === 'strong' || sessionSuccesses >= 2) {
     mode = 'challenge';
     difficultyDelta = 1;
   } else if (repeatedWeakness) {
@@ -113,7 +127,9 @@ export function getAdaptivePracticeContext(
     sessionTurns,
     sessionCorrections,
     sessionAccuracy,
-    guidance: [levelHint, modeHint].join(' '),
+    masteryState,
+    masteryTaskType: mastery.taskType,
+    guidance: [levelHint, modeHint, masteryState === 'transfer-ready' ? 'Use a new context because repeated transfer evidence is available.' : ''].filter(Boolean).join(' '),
   };
 }
 
@@ -179,9 +195,9 @@ const SCENARIO_BY_SKILL: Record<SkillKey, string> = {
 };
 
 export function getRecommendedScenario(
-  context: Pick<AdaptivePracticeContext, 'weakestSkill' | 'mode' | 'recentPerformance'>,
+  context: Pick<AdaptivePracticeContext, 'weakestSkill' | 'mode' | 'recentPerformance' | 'masteryState'>,
 ): AdaptiveScenarioRecommendation {
-  if (context.mode === 'challenge') {
+  if (context.mode === 'challenge' || context.masteryState === 'transfer-ready') {
     return {
       scenarioId: context.weakestSkill === 'vocabulary' ? 'shopping' : 'interview',
       reason: 'Your recent practice is strong, so the next task should require a little more real-world transfer.',
