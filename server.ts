@@ -286,7 +286,11 @@ Your Goal:
 - Always provide an accurate translation in ${nativeLanguage}.
 - Provide exact phonetic or IPA transcription guide.
 - Provide a brief, encouraging tip or grammar feedback.
-- Offer 2 to 3 smart suggested replies in ${targetLanguage} with ${nativeLanguage} translation.`;
+- Detect meaningful learner mistakes in grammar, word choice, or unnatural phrasing.
+- When a correction is useful, explain WHY the natural form is better in ${nativeLanguage}, not merely translate it.
+- Give one short practice prompt that makes the learner use the corrected form.
+- Offer 2 to 3 smart suggested replies in ${targetLanguage} with ${nativeLanguage} translation.
+- If the learner's sentence is already natural, return an empty correction object rather than inventing a mistake.`;
 
     const formattedHistory = messages.map((m: any) => ({
       role: m.role === 'tutor' ? 'model' : 'user',
@@ -306,6 +310,17 @@ Your Goal:
             translation: { type: Type.STRING, description: 'Translation in learner base language' },
             phonetic: { type: Type.STRING, description: 'Phonetic or IPA transcription guide' },
             feedback: { type: Type.STRING, description: 'Constructive grammar/vocab feedback' },
+            correction: {
+              type: Type.OBJECT,
+              properties: {
+                detected: { type: Type.STRING, description: 'Exact learner phrase that needs correction, or empty string' },
+                natural: { type: Type.STRING, description: 'Natural target-language replacement, or empty string' },
+                explanation: { type: Type.STRING, description: 'Why this is more natural, explained in the learner native language' },
+                focusArea: { type: Type.STRING, description: 'Short skill label such as Articles, Tense, Word choice, Preposition' },
+                practicePrompt: { type: Type.STRING, description: 'One short target-language prompt to practice the correction' },
+              },
+              required: ['detected', 'natural', 'explanation', 'focusArea', 'practicePrompt'],
+            },
             suggestedReplies: {
               type: Type.ARRAY,
               items: {
@@ -318,7 +333,7 @@ Your Goal:
               },
             },
           },
-          required: ['reply', 'translation', 'phonetic', 'feedback', 'suggestedReplies'],
+          required: ['reply', 'translation', 'phonetic', 'feedback', 'correction', 'suggestedReplies'],
         },
       },
     });
@@ -336,6 +351,7 @@ Your Goal:
         : `I heard you! Let us keep practicing ${targetLanguage}. You are making real progress.`,
       phonetic: `/aɪ hɜːrd juː/`,
       feedback: isSomali ? 'Aad bay u wanaagsan tahay! Ku hadal mar kale si aad u sii horumariso.' : 'Great job! Keep speaking.',
+      correction: { detected: '', natural: '', explanation: '', focusArea: '', practicePrompt: '' },
       suggestedReplies: [
         { text: 'How do you say thank you in your language?', translation: isSomali ? 'Sidee loo yiraahdaa mahadsanid afkan?' : 'How do you say thank you?' },
         { text: 'I want to practice conversation.', translation: isSomali ? 'Waxaan rabaa inaan ku tababarto hadal.' : 'I want to practice.' },
