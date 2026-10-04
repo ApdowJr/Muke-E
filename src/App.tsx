@@ -179,7 +179,7 @@ export default function App() {
           </section>
 
           <div className="animate-fade-in">
-            {activeTab==='learn' && <LearningDashboard appLang={appLang} cefrLevel={cefrLevel} setCefrLevel={handleSetCefr} level={level} progress={progressData} onSpeak={handleStartRoleplay} onPractice={()=>setActiveTab('practice')}/>}
+            {activeTab==='learn' && <LearningDashboard appLang={appLang} cefrLevel={cefrLevel} setCefrLevel={handleSetCefr} progress={progressData} onSpeak={handleStartRoleplay} onPractice={()=>setActiveTab('practice')}/>}
             {activeTab==='practice' && (
               <div className="space-y-6">
                 <PronunciationCoach targetLang={targetLang} appLang={appLang} initialPhrase={pronunciationSeedPhrase}
