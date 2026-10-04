@@ -56,6 +56,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
   const [micErrorMessage, setMicErrorMessage] = useState<string | null>(null);
   const [playingMsgId, setPlayingMsgId] = useState<string | null>(null);
   const [learnerWeaknesses, setLearnerWeaknesses] = useState<LearnerWeakness[]>([]);
+  const [focusSuccesses, setFocusSuccesses] = useState(0);
 
   const voiceRecorderRef = useRef<RobustVoiceRecorder | null>(null);
   const chatScrollRef = useRef<HTMLDivElement | null>(null);
@@ -69,6 +70,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
   }, []);
 
   useEffect(() => {
+    setFocusSuccesses(0);
     if (learningFocus?.practicePrompt) setInputText(learningFocus.practicePrompt);
   }, [learningFocus]);
 
@@ -236,10 +238,12 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
       if (tutorMsg.correction?.detected && tutorMsg.correction.natural) {
         setLearnerWeaknesses(rememberCorrection(tutorMsg.correction));
       }
+      const focusPassed = learningFocus ? tutorMsg.focusResult?.passed === true : false;
+      if (focusPassed) setFocusSuccesses((prev) => Math.min(prev + 1, 2));
       onRecordFeedback?.({
         corrected: Boolean(tutorMsg.correction?.detected && tutorMsg.correction.natural),
         focusArea: tutorMsg.correction?.focusArea,
-        focusPassed: learningFocus ? tutorMsg.focusResult?.passed === true : false,
+        focusPassed,
       });
 
       if (autoPlayAudio) {
@@ -264,23 +268,45 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
   return (
     <div className="flex flex-col gap-4">
       {learningFocus && (
-        <div className="flex items-start justify-between gap-3 rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3">
-          <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">
-              {isSomali ? 'Ku celcelin diirad leh' : 'Focused practice'} · {learningFocus.skill}
-            </p>
-            <p className="mt-1 text-sm font-semibold text-text-primary">
-              {learningFocus.weakness} → {learningFocus.correction}
-            </p>
-            <p className="mt-1 text-xs leading-5 text-text-secondary">{learningFocus.practicePrompt}</p>
+        <div className="rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">
+                {isSomali ? 'Ku celcelin diirad leh' : 'Focused practice'} · {learningFocus.skill}
+              </p>
+              <p className="mt-1 text-sm font-semibold text-text-primary">
+                {learningFocus.weakness} → {learningFocus.correction}
+              </p>
+              <p className="mt-1 text-xs leading-5 text-text-secondary">{learningFocus.practicePrompt}</p>
+            </div>
+            <button
+              type="button"
+              onClick={onExitFocus}
+              className="shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-bold text-text-muted hover:bg-app-surface hover:text-text-primary"
+            >
+              {isSomali ? 'Ka bax' : 'Exit'}
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onExitFocus}
-            className="shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-bold text-text-muted hover:bg-app-surface hover:text-text-primary"
-          >
-            {isSomali ? 'Ka bax' : 'Exit'}
-          </button>
+          <div className="mt-3 flex items-center justify-between gap-3 border-t border-primary/10 pt-3">
+            <div className="flex items-center gap-2 text-xs font-semibold text-text-secondary">
+              <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-primary/10 px-2 text-primary">{focusSuccesses}/2</span>
+              {isSomali ? 'guulo cusub' : 'successful new sentences'}
+            </div>
+            {focusSuccesses >= 2 && (
+              <button
+                type="button"
+                onClick={onExitFocus}
+                className="rounded-xl bg-primary px-3 py-2 text-xs font-bold text-white shadow-sm hover:bg-primary-hover"
+              >
+                {isSomali ? 'Dhammaystir' : 'Finish focus'}
+              </button>
+            )}
+          </div>
+          {focusSuccesses >= 2 && (
+            <div className="mt-3 rounded-xl border border-primary/20 bg-primary/10 px-3 py-2.5 text-xs font-semibold text-primary">
+              🎯 {isSomali ? 'Waad baratay qaabkan. Waxaad si sax ah ugu adeegsatay laba jumladood oo cusub.' : 'You have got this pattern. You used it correctly in two new sentences.'}
+            </div>
+          )}
         </div>
       )}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide" aria-label={isSomali ? 'Mawduucyada' : 'Conversation topics'}>
