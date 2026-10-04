@@ -24,6 +24,7 @@ interface ConversationViewProps {
   onSendToPronunciationLab: (phrase: string) => void;
   onIncrementPractice: () => void;
   onRecordFeedback?: (feedback: { corrected: boolean; focusArea?: string }) => void;
+  focusPrompt?: string;
   onTriggerMicPermissionModal: () => void;
 }
 
@@ -37,6 +38,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
   onIncrementPractice,
   onRecordFeedback,
   onTriggerMicPermissionModal,
+  focusPrompt,
 }) => {
   const currentLang = SUPPORTED_LANGUAGES[targetLang];
   const isSomali = appLang === 'so';
@@ -63,6 +65,11 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
   useEffect(() => {
     setLearnerWeaknesses(getLearnerWeaknesses());
   }, []);
+
+  useEffect(() => {
+    if (!focusPrompt) return;
+    setInputText(focusPrompt);
+  }, [focusPrompt]);
 
   useEffect(() => {
     const welcome = currentLang.welcomeMessage;
