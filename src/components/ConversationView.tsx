@@ -235,201 +235,74 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Scenario Selector - Horizontal Scroll */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-3 px-3 sm:-mx-4 sm:px-4 lg:-mx-6 lg:px-6 scrollbar-hide">
-        <span className="text-xs font-semibold text-slate-400 whitespace-nowrap">
-          {isSomali ? 'Mawduuca:' : 'Topic:'}
-        </span>
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide" aria-label={isSomali ? 'Mawduucyada' : 'Conversation topics'}>
+        <span className="shrink-0 text-xs font-semibold text-text-muted">{isSomali ? 'Mawduuca' : 'Topic'}</span>
         {CONVERSATION_SCENARIOS.map((sc) => {
-          const isSelected = sc.id === activeScenarioId;
-          return (
-            <button
-              key={sc.id}
-              onClick={() => setActiveScenarioId(sc.id)}
-              className={cn(
-                'px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors flex items-center gap-1.5 flex-shrink-0',
-                isSelected
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'bg-slate-800/80 text-slate-300 hover:bg-slate-750 hover:text-white'
-              )}
-            >
-              <span>{sc.icon}</span>
-              <span>{isSomali ? sc.titleSo : sc.titleEn}</span>
-            </button>
-          );
+          const selected = sc.id === activeScenarioId;
+          return <button key={sc.id} onClick={() => setActiveScenarioId(sc.id)}
+            className={cn('flex min-h-10 shrink-0 items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold transition',
+              selected ? 'border-primary bg-primary text-white shadow-sm' : 'border-app-border bg-app-surface text-text-secondary hover:bg-app-elevated hover:text-text-primary')}>
+            <span>{sc.icon}</span><span>{isSomali ? sc.titleSo : sc.titleEn}</span>
+          </button>;
         })}
       </div>
 
-      {/* Main Conversation Panel */}
-      <div className="rounded-2xl border border-white/10 bg-slate-900/80 overflow-hidden flex flex-col h-[calc(100vh-360px)] max-h-[600px] shadow-md">
-        {/* Messages Area */}
-        <div
-          ref={chatScrollRef}
-          className="flex-1 overflow-y-auto space-y-4 p-4 sm:p-5"
-        >
+      <div className="flex min-h-[520px] flex-col overflow-hidden rounded-3xl border border-app-border bg-app-surface shadow-elevation-md">
+        <div ref={chatScrollRef} className="flex-1 space-y-5 overflow-y-auto p-4 sm:p-6">
           {messages.map((msg) => {
             const isUser = msg.role === 'user';
             const isPlaying = playingMsgId === msg.id;
-
-            return (
-              <div key={msg.id} className={cn('flex gap-3', isUser ? 'justify-end' : 'justify-start')}>
-                {!isUser && (
-                  <div className="flex-shrink-0">
-                    <MokeAvatar size="sm" isSpeaking={isPlaying} className="shadow-sm" />
-                  </div>
-                )}
-
-                <div className={cn('max-w-[85%] sm:max-w-[70%] space-y-2', isUser && 'flex flex-col items-end')}
-                >
-                  <div
-                    className={cn(
-                      'rounded-2xl px-4 py-3 text-sm leading-relaxed',
-                      isUser
-                        ? 'bg-blue-600 text-white rounded-br-none'
-                        : 'bg-slate-800 text-slate-100 border border-slate-700/50 rounded-bl-none'
-                    )}
-                  >
-                    <p className="font-medium">{msg.text}</p>
-                    {!isUser && msg.translation && (
-                      <p className="mt-2 pt-2 border-t border-slate-700/50 text-xs text-slate-300">
-                        {msg.translation}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Tutor Actions */}
-                  {!isUser && (
-                    <div className="flex items-center gap-3 text-xs text-slate-400 px-1">
-                      <button
-                        onClick={() => handleSpeak(msg.text, msg.id)}
-                        className={cn(
-                          'hover:text-blue-400 flex items-center gap-1.5 font-medium transition-colors',
-                          isPlaying && 'text-blue-400'
-                        )}
-                      >
-                        <Volume2 className="w-3.5 h-3.5" />
-                        <span>{isPlaying ? (isSomali ? 'Wuu hadlayaa...' : 'Playing...') : (isSomali ? 'Dhegayso' : 'Listen')}</span>
-                      </button>
-                      <button
-                        onClick={() => onSendToPronunciationLab(msg.text)}
-                        className="hover:text-blue-400 flex items-center gap-1.5 font-medium transition-colors ml-auto"
-                      >
-                        <Sparkles className="w-3 h-3 text-blue-400" />
-                        <span>{isSomali ? 'Ku celi' : 'Practice'}</span>
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Suggested Replies */}
-                  {!isUser && msg.suggestedReplies && msg.suggestedReplies.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {msg.suggestedReplies.map((r, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => handleSendMessage(r.text)}
-                          className="text-xs bg-slate-800/80 hover:bg-slate-750 text-slate-300 hover:text-white border border-slate-700/50 rounded-lg px-3 py-1.5 transition-colors"
-                        >
-                          "{r.text}"
-                        </button>
-                      ))}
-                    </div>
-                  )}
+            return <div key={msg.id} className={cn('flex gap-3', isUser ? 'justify-end' : 'justify-start')}>
+              {!isUser && <div className="shrink-0"><MokeAvatar size="sm" isSpeaking={isPlaying} /></div>}
+              <div className={cn('max-w-[90%] space-y-2 sm:max-w-[72%]', isUser && 'flex flex-col items-end')}>
+                <div className={cn('rounded-2xl px-4 py-3 text-sm leading-6',
+                  isUser ? 'rounded-br-md bg-primary text-white' : 'rounded-bl-md border border-app-border bg-app-elevated text-text-primary')}>
+                  <p className="font-medium">{msg.text}</p>
+                  {!isUser && msg.translation && <p className="mt-2 border-t border-app-border pt-2 text-xs text-text-secondary">{msg.translation}</p>}
                 </div>
+                {!isUser && <div className="flex items-center gap-4 px-1 text-xs text-text-muted">
+                  <button onClick={() => handleSpeak(msg.text, msg.id)} className={cn('flex items-center gap-1.5 font-semibold hover:text-primary', isPlaying && 'text-primary')}>
+                    <Volume2 className="h-3.5 w-3.5" />{isPlaying ? (isSomali ? 'Wuu hadlayaa...' : 'Playing...') : (isSomali ? 'Dhegayso' : 'Listen')}
+                  </button>
+                  <button onClick={() => onSendToPronunciationLab(msg.text)} className="ml-auto flex items-center gap-1.5 font-semibold hover:text-primary">
+                    <Sparkles className="h-3.5 w-3.5" />{isSomali ? 'Ku celi' : 'Practice'}
+                  </button>
+                </div>}
+                {!isUser && msg.suggestedReplies?.length ? <div className="flex flex-wrap gap-2 pt-1">
+                  {msg.suggestedReplies.map((reply, idx) => <button key={idx} onClick={() => handleSendMessage(reply.text)}
+                    className="rounded-xl border border-app-border bg-app-surface px-3 py-2 text-xs font-semibold text-text-secondary hover:border-primary/40 hover:text-text-primary">“{reply.text}”</button>)}
+                </div> : null}
               </div>
-            );
+            </div>;
           })}
-
-          {/* Listening State */}
-          {isListening && (
-            <div className="flex justify-end">
-              <div className="bg-blue-950/40 border border-blue-500/30 text-blue-100 rounded-2xl rounded-br-none p-4 max-w-[70%] text-sm space-y-1">
-                <div className="flex items-center gap-2 text-xs font-semibold text-blue-400">
-                  <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
-                  <span>{isSomali ? 'Wuu dhagaysanayaa...' : 'Listening...'}</span>
-                </div>
-                <p className="font-semibold text-white">
-                  {interimTranscript || (isSomali ? 'Ku hadal...' : 'Speak now...')}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Processing State */}
-          {isProcessingAudio && (
-            <div className="flex justify-end">
-              <div className="bg-slate-800 border border-slate-700 text-slate-300 rounded-2xl p-3 text-xs flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
-                <span>{isSomali ? 'Codkaaga ayaa la qorayaa...' : 'Transcribing...'}</span>
-              </div>
-            </div>
-          )}
-
-          {/* AI Thinking */}
-          {isLoading && (
-            <div className="flex items-center gap-2 text-slate-400 text-xs">
-              <MokeAvatar size="sm" isSpeaking={true} />
-              <span>{isSomali ? 'Moke E wuu ka jawaabayaa...' : 'Moke E is answering...'}</span>
-            </div>
-          )}
+          {isListening && <div className="flex justify-end"><div className="rounded-2xl border border-primary/30 bg-primary/10 p-4 text-sm">
+            <div className="flex items-center gap-2 text-xs font-semibold text-primary"><span className="h-2 w-2 animate-ping rounded-full bg-primary"/>{isSomali?'Wuu dhagaysanayaa...':'Listening...'}</div>
+            <p className="mt-1 font-semibold text-text-primary">{interimTranscript || (isSomali ? 'Ku hadal...' : 'Speak now...')}</p>
+          </div></div>}
+          {isProcessingAudio && <div className="flex justify-end"><div className="flex items-center gap-2 rounded-xl border border-app-border bg-app-elevated px-3 py-2 text-xs text-text-secondary"><span className="h-2 w-2 animate-pulse rounded-full bg-primary"/>{isSomali?'Codkaaga ayaa la qorayaa...':'Transcribing...'}</div></div>}
+          {isLoading && <div className="flex items-center gap-2 text-xs text-text-muted"><MokeAvatar size="sm" isSpeaking={true}/>{isSomali?'Moke E wuu ka jawaabayaa...':'Moke E is answering...'}</div>}
         </div>
 
-        {/* Error Banner */}
-        {micErrorMessage && (
-          <div className="bg-amber-950/40 border-t border-amber-800/30 px-4 py-2.5 text-xs text-amber-200 flex items-center justify-between gap-3">
-            <span className="flex items-center gap-1.5 flex-1">
-              <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
-              <span>{micErrorMessage}</span>
-            </span>
-            <button
-              onClick={() => setMicErrorMessage(null)}
-              className="text-amber-400 hover:text-amber-300"
-            >
-              ✕
+        {micErrorMessage && <div className="flex items-center justify-between gap-3 border-t border-app-border bg-app-elevated px-4 py-3 text-xs text-warning">
+          <span className="flex items-center gap-2"><AlertCircle className="h-4 w-4"/>{micErrorMessage}</span>
+          <button onClick={() => setMicErrorMessage(null)} aria-label="Dismiss" className="text-text-muted">×</button>
+        </div>}
+
+        <div className="border-t border-app-border bg-app-surface p-3 sm:p-4">
+          <form onSubmit={e => { e.preventDefault(); handleSendMessage(); }} className="flex items-center gap-2">
+            <button type="button" onClick={handleToggleMic} disabled={isProcessingAudio}
+              className={cn('flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl transition',
+                isListening ? 'bg-danger text-white ring-4 ring-danger/20' : 'bg-primary text-white shadow-md hover:bg-primary-hover active:scale-95')}
+              aria-label={isListening ? 'Stop recording' : 'Start recording'}>
+              {isListening ? <MicOff className="h-5 w-5"/> : <Mic className="h-5 w-5"/>}
             </button>
-          </div>
-        )}
-
-        {/* Composer */}
-        <div className="border-t border-slate-800 bg-slate-900 p-4 space-y-2">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSendMessage();
-            }}
-            className="flex items-center gap-2 sm:gap-3"
-          >
-            <button
-              type="button"
-              onClick={handleToggleMic}
-              disabled={isProcessingAudio}
-              className={cn(
-                'p-3 sm:p-3.5 rounded-2xl flex items-center justify-center transition-all flex-shrink-0',
-                isListening
-                  ? 'bg-rose-600 text-white ring-4 ring-rose-400/30 animate-pulse'
-                  : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20 active:scale-95'
-              )}
-            >
-              {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-            </button>
-
-            <input
-              type="text"
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder={isSomali ? 'Qor ama hadal...' : 'Type or speak...'}
-              className="flex-1 bg-slate-800 border border-slate-700 focus:border-blue-500 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-            />
-
-            <button
-              type="submit"
-              disabled={!inputText.trim() || isLoading}
-              className="p-3 sm:p-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white border-0 transition-colors flex-shrink-0"
-            >
-              <Send className="w-5 h-5" />
+            <input value={inputText} onChange={e=>setInputText(e.target.value)} placeholder={isSomali?'Qor ama hadal...':'Type or speak...'}
+              className="min-w-0 flex-1 rounded-2xl border border-app-border bg-app-elevated px-4 py-3 text-sm text-text-primary placeholder:text-text-muted outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"/>
+            <button type="submit" disabled={!inputText.trim() || isLoading} className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-app-elevated text-text-primary disabled:opacity-30" aria-label="Send message">
+              <Send className="h-5 w-5"/>
             </button>
           </form>
         </div>
       </div>
     </div>
   );
-};
