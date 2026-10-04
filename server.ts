@@ -260,6 +260,7 @@ app.post('/api/chat', async (req, res) => {
       learningFocus = null,
       adaptiveContext = null,
       nextTask = null,
+      masteryGuidance = '',
     } = req.body;
 
     const apiKey = process.env.GEMINI_API_KEY;
@@ -315,6 +316,10 @@ app.post('/api/chat', async (req, res) => {
         ].join('\\n')
       : 'LIVE LEARNER MODEL: unavailable; rely on the learner\'s current turn and recent conversation.';
 
+    const masteryGuidanceText = masteryGuidance
+      ? ['ADAPTIVE MASTERY EVIDENCE:', String(masteryGuidance), 'Use this as historical evidence. Do not tell the learner they are mastered unless repeated evidence supports it.'].join('\\n')
+      : 'ADAPTIVE MASTERY EVIDENCE: limited; do not claim mastery.';
+
     const nextTaskText = nextTask && typeof nextTask === 'object'
       ? [
           'NEXT ADAPTIVE TASK:',
@@ -366,7 +371,10 @@ Your Goal:
 - Offer 2 to 3 smart suggested replies in ${targetLanguage} with ${nativeLanguage} translation.
 - If focused practice is active, set focusResult.passed=true only when the learner's NEW sentence correctly applies the target correction; otherwise false. Keep focusResult.feedback short.
 - If focused practice is not active, set focusResult.passed=false and focusResult.feedback to an empty string.
-- If the learner's sentence is already natural, return an empty correction object rather than inventing a mistake.`;
+- If the learner's sentence is already natural, return an empty correction object rather than inventing a mistake.
+- For the NEXT ADAPTIVE TASK, classify the learner's response as success only when they clearly complete the requested task in a natural, usable way; use partial when the intent is right but execution needs a small correction; use fail when they do not complete the task or the target skill is not demonstrated.
+- Return the taskResult skill using the most relevant skill from speaking, listening, vocabulary, grammar, pronunciation, or fluency.
+- Keep taskResult.feedback short and actionable in the learner explanation language.`;
 
     const formattedHistory = messages.map((m: any) => ({
       role: m.role === 'tutor' ? 'model' : 'user',
@@ -386,6 +394,15 @@ Your Goal:
             translation: { type: Type.STRING, description: 'Translation in learner base language' },
             phonetic: { type: Type.STRING, description: 'Phonetic or IPA transcription guide' },
             feedback: { type: Type.STRING, description: 'Constructive grammar/vocab feedback' },
+            taskResult: {
+              type: Type.OBJECT,
+              properties: {
+                outcome: { type: Type.STRING, description: 'Adaptive task outcome: success, partial, or fail' },
+                skill: { type: Type.STRING, description: 'Relevant skill: speaking, listening, vocabulary, grammar, pronunciation, or fluency' },
+                feedback: { type: Type.STRING, description: 'Short actionable task feedback in the learner explanation language' },
+              },
+              required: ['outcome', 'skill', 'feedback'],
+            },
             focusResult: {
               type: Type.OBJECT,
               properties: {
@@ -417,7 +434,7 @@ Your Goal:
               },
             },
           },
-          required: ['reply', 'translation', 'phonetic', 'feedback', 'focusResult', 'correction', 'suggestedReplies'],
+          required: ['reply', 'translation', 'phonetic', 'feedback', 'taskResult', 'focusResult', 'correction', 'suggestedReplies'],
         },
       },
     });
@@ -437,6 +454,7 @@ Your Goal:
       feedback: isSomali ? 'Aad bay u wanaagsan tahay! Ku hadal mar kale si aad u sii horumariso.' : 'Great job! Keep speaking.',
       correction: { detected: '', natural: '', explanation: '', focusArea: '', practicePrompt: '' },
       focusResult: { passed: false, feedback: '' },
+      taskResult: { outcome: 'fail', skill: 'speaking', feedback: '' },
       suggestedReplies: [
         { text: 'How do you say thank you in your language?', translation: isSomali ? 'Sidee loo yiraahdaa mahadsanid afkan?' : 'How do you say thank you?' },
         { text: 'I want to practice conversation.', translation: isSomali ? 'Waxaan rabaa inaan ku tababarto hadal.' : 'I want to practice.' },
