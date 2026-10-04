@@ -258,6 +258,7 @@ app.post('/api/chat', async (req, res) => {
       scenario = 'General Conversation',
       tutorName = 'Moke E',
       learningFocus = null,
+      adaptiveContext = null,
     } = req.body;
 
     const apiKey = process.env.GEMINI_API_KEY;
@@ -295,12 +296,28 @@ app.post('/api/chat', async (req, res) => {
         ].join('\\n')
       : 'No focused practice is active. Continue normal adaptive conversation.';
 
+    const adaptiveContextText = adaptiveContext && typeof adaptiveContext === 'object'
+      ? [
+          'LIVE LEARNER MODEL:',
+          `Mode: ${String(adaptiveContext.mode || 'steady')}`,
+          `Difficulty delta: ${String(adaptiveContext.difficultyDelta ?? 0)}`,
+          `Weakest skill: ${String(adaptiveContext.weakestSkill || 'speaking')} (score ${String(adaptiveContext.weakestSkillScore ?? 0)})`,
+          `Repeated weakness: ${String(adaptiveContext.repeatedWeakness || 'none')} (count ${String(adaptiveContext.repeatedWeaknessCount ?? 0)})`,
+          `Recent performance: ${String(adaptiveContext.recentPerformance || 'developing')}`,
+          `Successful focused repetitions this session: ${String(adaptiveContext.sessionSuccesses ?? 0)}`,
+          `Guidance: ${String(adaptiveContext.guidance || '')}`,
+          'Treat this context as a decision aid, not as text to repeat to the learner.',
+        ].join('\\n')
+      : 'LIVE LEARNER MODEL: unavailable; rely on the learner\'s current turn and recent conversation.';
+
     const systemInstruction = `You are ${tutorName}, a world-class, ultra-friendly AI language companion for learners of ${targetLanguage}.
 Learner proficiency level: ${level}.
 Active conversation scenario: ${scenario}.
 Learner's primary native/explanation language: ${nativeLanguage}.
 
 ${focusContext}
+
+${adaptiveContextText}
 
 ADAPTIVE LEARNING ENGINE:
 - Treat every learner turn as evidence about what they can currently do, not as a reason to praise them generically.
