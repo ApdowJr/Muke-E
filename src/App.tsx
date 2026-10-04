@@ -8,7 +8,7 @@ import { TranscriptionStudio } from './components/TranscriptionStudio';
 import { MicrophonePermissionModal } from './components/MicrophonePermissionModal';
 import { LearningProgressModal } from './components/LearningProgressModal';
 import { SUPPORTED_LANGUAGES } from './utils/languages';
-import { getStoredProgress, recordPracticeSession, recordSkillPractice, ProgressSummary } from './utils/progressTracker';
+import { getStoredProgress, recordPracticeSession, recordSkillPractice, recordConversationFeedback, ProgressSummary } from './utils/progressTracker';
 
 export default function App() {
   const [targetLang, setTargetLang] = useState<TargetLanguageCode>('en');
@@ -58,6 +58,10 @@ export default function App() {
 
   const handleConversationPractice = () => {
     refreshProgress(recordPracticeSession());
+  };
+
+  const handleConversationFeedback = (feedback: { corrected: boolean; focusArea?: string }) => {
+    refreshProgress(recordConversationFeedback(feedback));
   };
 
   const handlePronunciationPractice = (score?: number) => {
@@ -181,7 +185,8 @@ export default function App() {
             {activeTab === 'conversation' && (
               <ConversationView targetLang={targetLang} appLang={appLang} level={level} speechSpeed={speechSpeed}
                 autoPlayAudio={autoPlayAudio} onSendToPronunciationLab={handleNavigateToPronunciation}
-                onIncrementPractice={handleConversationPractice} onTriggerMicPermissionModal={() => setIsMicModalOpen(true)} />
+                onIncrementPractice={handleConversationPractice} onRecordFeedback={handleConversationFeedback}
+                onTriggerMicPermissionModal={() => setIsMicModalOpen(true)} />
             )}
             {activeTab === 'pronunciation' && (
               <PronunciationCoach targetLang={targetLang} appLang={appLang} initialPhrase={pronunciationSeedPhrase}
