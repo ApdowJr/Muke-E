@@ -287,7 +287,8 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
       }
       const focusPassed = learningFocus ? tutorMsg.focusResult?.passed === true : false;
       const taskOutcome = tutorMsg.taskResult?.outcome;
-      if (taskOutcome && nextTask.type) {
+      const isTrackedAdaptiveTask = nextTask.type !== 'conversation';
+      if (taskOutcome && isTrackedAdaptiveTask) {
         recordAdaptiveTaskOutcome(
           tutorMsg.taskResult?.skill || adaptiveContext.weakestSkill,
           nextTask.type,
@@ -298,9 +299,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
       const nextTurns = sessionTurns + 1;
       const nextCorrections = sessionCorrections + (corrected ? 1 : 0);
       const nextFocusSuccesses = focusPassed ? Math.min(focusSuccesses + 1, 2) : focusSuccesses;
-      const nextTaskAttempts = sessionTaskAttempts + (taskOutcome ? 1 : 0);
-      const nextTaskSuccesses = sessionTaskSuccesses + (taskOutcome === 'success' ? 1 : 0);
-      const nextTaskPartials = sessionTaskPartials + (taskOutcome === 'partial' ? 1 : 0);
+      const trackedTaskOutcome = isTrackedAdaptiveTask ? taskOutcome : undefined;
+      const nextTaskAttempts = sessionTaskAttempts + (trackedTaskOutcome ? 1 : 0);
+      const nextTaskSuccesses = sessionTaskSuccesses + (trackedTaskOutcome === 'success' ? 1 : 0);
+      const nextTaskPartials = sessionTaskPartials + (trackedTaskOutcome === 'partial' ? 1 : 0);
       if (focusPassed) setFocusSuccesses(nextFocusSuccesses);
       setSessionTurns(nextTurns);
       setSessionCorrections(nextCorrections);
