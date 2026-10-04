@@ -10,6 +10,7 @@ import { LearningProgressModal } from './components/LearningProgressModal';
 import { SUPPORTED_LANGUAGES } from './utils/languages';
 import { getStoredProgress, recordPracticeSession, recordSkillPractice, recordConversationFeedback, ProgressSummary } from './utils/progressTracker';
 import { LearnerWeakness } from './utils/learnerMemory';
+import { LearningFocus } from './types';
 
 export default function App() {
   const [targetLang, setTargetLang] = useState<TargetLanguageCode>('en');
@@ -23,7 +24,7 @@ export default function App() {
   const [isMicPermitted, setIsMicPermitted] = useState(false);
   const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
   const [progressData, setProgressData] = useState<ProgressSummary>(() => getStoredProgress());
-  const [focusPrompt, setFocusPrompt] = useState('');
+  const [learningFocus, setLearningFocus] = useState<LearningFocus | null>(null);
 
   const isSomali = appLang === 'so';
   const currentLang = SUPPORTED_LANGUAGES[targetLang];
@@ -79,8 +80,17 @@ export default function App() {
   };
 
   const handleStartFocus = (focus: LearnerWeakness) => {
-    setFocusPrompt(focus.practicePrompt || ('Practice this naturally: ' + focus.correction));
+    setLearningFocus({
+      skill: focus.focusArea || 'Natural language',
+      weakness: focus.phrase,
+      correction: focus.correction,
+      practicePrompt: focus.practicePrompt || ('Practice this naturally: ' + focus.correction),
+    });
     setActiveTab('conversation');
+  };
+
+  const handleExitFocus = () => {
+    setLearningFocus(null);
   };
 
   const handleNavigateToPronunciation = (phrase: string) => {
@@ -191,7 +201,7 @@ export default function App() {
           <div className="animate-fade-in">
             {activeTab === 'conversation' && (
               <ConversationView targetLang={targetLang} appLang={appLang} level={level} speechSpeed={speechSpeed}
-                autoPlayAudio={autoPlayAudio} focusPrompt={focusPrompt} onSendToPronunciationLab={handleNavigateToPronunciation}
+                autoPlayAudio={autoPlayAudio} learningFocus={learningFocus} onExitFocus={handleExitFocus} onSendToPronunciationLab={handleNavigateToPronunciation}
                 onIncrementPractice={handleConversationPractice} onRecordFeedback={handleConversationFeedback}
                 onTriggerMicPermissionModal={() => setIsMicModalOpen(true)} />
             )}
