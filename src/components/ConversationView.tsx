@@ -80,7 +80,12 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
     setLearnerWeaknesses(getLearnerWeaknesses());
     const nextContext = getAdaptivePracticeContext(level);
     setAdaptiveContext(nextContext);
-    setActiveScenarioId(getRecommendedScenario(nextContext).scenarioId);
+    let requestedScenario = '';
+    try {
+      requestedScenario = localStorage.getItem('moke_e_roleplay_scenario') || '';
+      localStorage.removeItem('moke_e_roleplay_scenario');
+    } catch (e) {}
+    setActiveScenarioId(requestedScenario || getRecommendedScenario(nextContext).scenarioId);
   }, []);
 
   useEffect(() => {
