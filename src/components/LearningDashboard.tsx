@@ -3,7 +3,7 @@ import { BookOpen, CheckCircle2, ChevronRight, Mic2, MessageCircle, Brain, Spark
 import type { AppLanguage, SkillLevel } from '../types';
 import type { ProgressSummary } from '../utils/progressTracker';
 import { CEFR_LEVELS, type CEFRLevel, getCEFRInfo } from '../utils/cefr';
-import { getCurriculumFocus } from '../utils/curriculum';
+import { getCEFRCurriculumFocus } from '../utils/curriculum';
 import { getRoleplaysForLevel } from '../utils/roleplay';
 
 interface Props {
@@ -22,7 +22,7 @@ export const LearningDashboard: React.FC<Props> = ({ appLang, cefrLevel, setCefr
   const so = appLang === 'so';
   const info = getCEFRInfo(cefrLevel);
   const weakest = (Object.keys(progress.skills) as Array<keyof typeof progress.skills>).sort((a,b) => progress.skills[a].score - progress.skills[b].score)[0] ?? 'speaking';
-  const focus = getCurriculumFocus(level, weakest);
+  const focus = getCEFRCurriculumFocus(cefrLevel, weakest);
   const roleplays = getRoleplaysForLevel(cefrLevel).slice(0,3);
 
   return <div className="space-y-5">
