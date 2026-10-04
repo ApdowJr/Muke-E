@@ -17,6 +17,7 @@ export interface AdaptivePracticeContext {
   sessionTurns: number;
   sessionCorrections: number;
   sessionAccuracy: number;
+  taskAccuracy: number;
   masteryState: 'limited' | 'developing' | 'transfer-ready';
   masteryTaskType: AdaptiveTaskType;
   guidance: string;
@@ -143,6 +144,7 @@ export function getAdaptivePracticeContext(
     sessionTurns,
     sessionCorrections,
     sessionAccuracy,
+    taskAccuracy,
     masteryState,
     masteryTaskType: mastery.taskType,
     guidance: [levelHint, modeHint, masteryState === 'transfer-ready' ? 'Use a new context because repeated transfer evidence is available.' : ''].filter(Boolean).join(' '),
