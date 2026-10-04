@@ -259,6 +259,7 @@ app.post('/api/chat', async (req, res) => {
       tutorName = 'Moke E',
       learningFocus = null,
       adaptiveContext = null,
+      nextTask = null,
     } = req.body;
 
     const apiKey = process.env.GEMINI_API_KEY;
@@ -313,6 +314,16 @@ app.post('/api/chat', async (req, res) => {
           'Use session accuracy to decide whether the next response should simplify, reinforce, or challenge. Do not expose numeric scores unless the learner asks.',
         ].join('\\n')
       : 'LIVE LEARNER MODEL: unavailable; rely on the learner\'s current turn and recent conversation.';
+
+    const nextTaskText = nextTask && typeof nextTask === 'object'
+      ? [
+          'NEXT ADAPTIVE TASK:',
+          `Type: ${String(nextTask.type || 'conversation')}`,
+          `Intent: ${String(nextTask.intent || '')}`,
+          `Instruction: ${String(nextTask.instruction || '')}`,
+          'Make the next learner task follow this instruction. The task should change based on the live learner model, not merely be described to the learner.',
+        ].join('\\n')
+      : 'NEXT ADAPTIVE TASK: unavailable; choose the next task from the live learner model.';
 
     const systemInstruction = `You are ${tutorName}, a world-class, ultra-friendly AI language companion for learners of ${targetLanguage}.
 Learner proficiency level: ${level}.
