@@ -2,7 +2,8 @@ import React from 'react';
 import { X, Flame, Activity, TrendingUp, BookOpen, Mic2, Headphones, MessageSquare, Brain, Gauge, ArrowRight } from 'lucide-react';
 import { AppLanguage } from '../types';
 import { ProgressSummary, SkillKey } from '../utils/progressTracker';
-import { getLearningFocus, LearnerWeakness } from '../utils/learnerMemory';
+import { getLearningFocus, getLearnerWeaknesses, LearnerWeakness } from '../utils/learnerMemory';
+import { isReviewDue } from '../utils/spacedRepetition';
 
 interface LearningProgressModalProps { isOpen: boolean; onClose: () => void; appLang: AppLanguage; progress: ProgressSummary; onStartFocus?: (focus: LearnerWeakness) => void; }
 
@@ -26,6 +27,7 @@ export const LearningProgressModal: React.FC<LearningProgressModalProps> = ({ is
   if (!isOpen) return null;
   const nextFocus = getNextFocus(progress);
   const learningFocus = getLearningFocus();
+  const reviewDueCount = getLearnerWeaknesses().filter((item) => isReviewDue(item.review)).length;
   const hasActivity = progress.totalCount > 0 || Object.values(progress.skills).some((skill) => skill.practiceCount > 0);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-3 backdrop-blur-sm">
@@ -51,6 +53,16 @@ export const LearningProgressModal: React.FC<LearningProgressModalProps> = ({ is
             })}
           </div>
         </section>
+        {reviewDueCount > 0 && <section className="mt-5 rounded-2xl border border-primary/20 bg-primary/5 p-4 sm:p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2 text-primary"><Brain className="h-4 w-4" /><span className="text-xs font-bold uppercase tracking-[0.14em]">{isSomali ? 'Dib-u-eegis' : 'Spaced review'}</span></div>
+              <h3 className="mt-2 text-sm font-bold">{isSomali ? reviewDueCount + ' sixid' + (reviewDueCount === 1 ? '' : 'ood') + ' ayaa diyaar u ah dib-u-eegis.' : reviewDueCount + ' correction' + (reviewDueCount === 1 ? '' : 's') + ' ' + (reviewDueCount === 1 ? 'is' : 'are') + ' due for review.'}</h3>
+              <p className="mt-1 text-xs leading-5 text-text-muted">{isSomali ? 'Ku celi khaladaadka hore si aqoontu uga gudubto xasuus gaaban una noqoto xirfad.' : 'Revisit older corrections so useful patterns move into long-term memory.'}</p>
+            </div>
+            {learningFocus && <button onClick={() => { onStartFocus?.(learningFocus); onClose(); }} className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl bg-primary px-4 text-xs font-bold text-white transition hover:opacity-90"><ArrowRight className="h-3.5 w-3.5" />{isSomali ? 'Dib u bilow' : 'Review now'}</button>}
+          </div>
+        </section>}
         {learningFocus && <section className="mt-5 rounded-2xl border border-primary/20 bg-primary/5 p-4 sm:p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
