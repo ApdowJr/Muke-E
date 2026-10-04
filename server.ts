@@ -76,6 +76,15 @@ function wordSimilarity(w1: string, w2: string): number {
   return Math.max(0, score);
 }
 
+function normalizeTaskResult(value: any) {
+  const allowedOutcomes = new Set(['success', 'partial', 'fail']);
+  const allowedSkills = new Set(['speaking', 'listening', 'vocabulary', 'grammar', 'pronunciation', 'fluency']);
+  const outcome = allowedOutcomes.has(value?.outcome) ? value.outcome : 'fail';
+  const skill = allowedSkills.has(value?.skill) ? value.skill : 'speaking';
+  const feedback = typeof value?.feedback === 'string' ? value.feedback.trim().slice(0, 300) : '';
+  return { outcome, skill, feedback };
+}
+
 function calculateRealPronunciation(
   targetText: string,
   spokenText: string,
@@ -443,6 +452,7 @@ Your Goal:
     });
 
     const parsed = JSON.parse(response.text || '{}');
+    parsed.taskResult = normalizeTaskResult(parsed.taskResult);
     res.json(parsed);
   } catch (error: any) {
     console.error('Error in /api/chat (using friendly fallback):', error.status || error.message);
