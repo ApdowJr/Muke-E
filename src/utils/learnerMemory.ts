@@ -49,7 +49,7 @@ export function rememberCorrection(correction: LearnerCorrection): LearnerWeakne
     existing.focusArea = correction.focusArea;
     existing.practicePrompt = correction.practicePrompt || `Practice this naturally: ${correction.natural}`;
     existing.lastSeen = Date.now();
-    existing.review = getNextReview(existing.review?.repetitions ?? 0, existing.review?.intervalDays ?? 0, true);
+    existing.review = getNextReview(existing.review?.repetitions ?? 0, existing.review?.intervalDays ?? 0);
   } else {
     current.unshift({
       phrase: correction.detected.trim(),
