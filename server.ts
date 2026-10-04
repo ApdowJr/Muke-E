@@ -305,8 +305,12 @@ app.post('/api/chat', async (req, res) => {
           `Repeated weakness: ${String(adaptiveContext.repeatedWeakness || 'none')} (count ${String(adaptiveContext.repeatedWeaknessCount ?? 0)})`,
           `Recent performance: ${String(adaptiveContext.recentPerformance || 'developing')}`,
           `Successful focused repetitions this session: ${String(adaptiveContext.sessionSuccesses ?? 0)}`,
+          `Session turns: ${String(adaptiveContext.sessionTurns ?? 0)}`,
+          `Session corrections: ${String(adaptiveContext.sessionCorrections ?? 0)}`,
+          `Session accuracy: ${String(adaptiveContext.sessionAccuracy ?? 0)}%`,
           `Guidance: ${String(adaptiveContext.guidance || '')}`,
           'Treat this context as a decision aid, not as text to repeat to the learner.',
+          'Use session accuracy to decide whether the next response should simplify, reinforce, or challenge. Do not expose numeric scores unless the learner asks.',
         ].join('\\n')
       : 'LIVE LEARNER MODEL: unavailable; rely on the learner\'s current turn and recent conversation.';
 
