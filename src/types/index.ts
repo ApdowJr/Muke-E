@@ -45,6 +45,12 @@ export interface FocusPracticeResult {
   feedback: string;
 }
 
+export interface AdaptiveTaskResult {
+  outcome: 'success' | 'partial' | 'fail';
+  skill: string;
+  feedback: string;
+}
+
 export interface LearnerCorrection {
   detected: string;
   natural: string;
@@ -62,6 +68,7 @@ export interface ChatMessage {
   feedback?: string;
   correction?: LearnerCorrection;
   focusResult?: FocusPracticeResult;
+  taskResult?: AdaptiveTaskResult;
   suggestedReplies?: { text: string; translation: string }[];
   audioUrl?: string;
   timestamp: number;
