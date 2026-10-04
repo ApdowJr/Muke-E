@@ -33,7 +33,7 @@ const getAI = () => {
 };
 
 // -------------------------------------------------------------
-// REAL, HONEST PHONETIC & ACOUSTIC EVALUATION ENGINE
+// HONEST PRONUNCIATION EVALUATION ENGINE (audio-aware when Gemini is available)
 // -------------------------------------------------------------
 
 function cleanWord(str: string): string {
@@ -496,7 +496,7 @@ app.post('/api/pronunciation-evaluate', async (req, res) => {
   try {
     const apiKey = process.env.GEMINI_API_KEY;
 
-    // Try Gemini first if key exists
+    // Try multimodal Gemini first when audio is available; otherwise use recognized text.
     if (apiKey) {
       const ai = getAI();
 
@@ -513,9 +513,19 @@ CRITICAL HONESTY RULES:
 - If they said all words with near-native precision, give 90-98%.
 - Calculate the real score based strictly on what was said vs target.`;
 
+      const contents: any[] = [{ text: prompt }];
+      if (audioBase64 && audioBase64.length > 500) {
+        contents.push({
+          inlineData: {
+            mimeType,
+            data: audioBase64,
+          },
+        });
+      }
+
       const response = await ai.models.generateContent({
         model: 'gemini-3.8-flash',
-        contents: prompt,
+        contents,
         config: {
           responseMimeType: 'application/json',
           responseSchema: {
@@ -557,7 +567,7 @@ CRITICAL HONESTY RULES:
     console.warn('Gemini evaluate returned status (using honest algorithmic engine):', error.status || error.message);
   }
 
-  // Authentic Algorithmic Real Pronunciation Evaluation
+  // Deterministic speech-to-text alignment fallback (not acoustic phoneme scoring)
   const honestResult = calculateRealPronunciation(
     targetText,
     spokenText,
