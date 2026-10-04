@@ -63,7 +63,7 @@ export default function App() {
     refreshProgress(recordPracticeSession());
   };
 
-  const handleConversationFeedback = (feedback: { corrected: boolean; focusArea?: string }) => {
+  const handleConversationFeedback = (feedback: { corrected: boolean; focusArea?: string; focusPassed?: boolean }) => {
     refreshProgress(recordConversationFeedback(feedback));
   };
 
