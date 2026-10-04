@@ -59,6 +59,8 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
   const [playingMsgId, setPlayingMsgId] = useState<string | null>(null);
   const [learnerWeaknesses, setLearnerWeaknesses] = useState<LearnerWeakness[]>([]);
   const [focusSuccesses, setFocusSuccesses] = useState(0);
+  const [sessionTurns, setSessionTurns] = useState(0);
+  const [sessionCorrections, setSessionCorrections] = useState(0);
   const recommendedScenario = getRecommendedScenario(adaptiveContext);
 
   const voiceRecorderRef = useRef<RobustVoiceRecorder | null>(null);
@@ -77,7 +79,9 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
 
   useEffect(() => {
     setFocusSuccesses(0);
-    const nextContext = getAdaptivePracticeContext(level);
+    setSessionTurns(0);
+    setSessionCorrections(0);
+    const nextContext = getAdaptivePracticeContext(level, 0, 0, 0);
     setAdaptiveContext(nextContext);
     if (!learningFocus) setActiveScenarioId(getRecommendedScenario(nextContext).scenarioId);
     if (learningFocus?.practicePrompt) setInputText(learningFocus.practicePrompt);
@@ -225,6 +229,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
           learningFocus: learningFocus || null,
           adaptiveContext,
           recommendedScenario: activeScenarioId === recommendedScenario.scenarioId,
+          sessionPerformance: {
+            turns: sessionTurns,
+            corrections: sessionCorrections,
+          },
         }),
       });
 
@@ -250,10 +258,17 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
         setLearnerWeaknesses(rememberCorrection(tutorMsg.correction));
       }
       const focusPassed = learningFocus ? tutorMsg.focusResult?.passed === true : false;
-      if (focusPassed) setFocusSuccesses((prev) => Math.min(prev + 1, 2));
-      setAdaptiveContext(getAdaptivePracticeContext(level, focusPassed ? Math.min(focusSuccesses + 1, 2) : focusSuccesses));
+      const corrected = Boolean(tutorMsg.correction?.detected && tutorMsg.correction.natural);
+      const nextTurns = sessionTurns + 1;
+      const nextCorrections = sessionCorrections + (corrected ? 1 : 0);
+      const nextFocusSuccesses = focusPassed ? Math.min(focusSuccesses + 1, 2) : focusSuccesses;
+      if (focusPassed) setFocusSuccesses(nextFocusSuccesses);
+      setSessionTurns(nextTurns);
+      setSessionCorrections(nextCorrections);
+      const nextContext = getAdaptivePracticeContext(level, nextFocusSuccesses, nextTurns, nextCorrections);
+      setAdaptiveContext(nextContext);
       onRecordFeedback?.({
-        corrected: Boolean(tutorMsg.correction?.detected && tutorMsg.correction.natural),
+        corrected,
         focusArea: tutorMsg.correction?.focusArea,
         focusPassed,
       });
