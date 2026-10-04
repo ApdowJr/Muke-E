@@ -1,6 +1,6 @@
 import React from 'react';
 import { BookOpen, CheckCircle2, ChevronRight, Mic2, MessageCircle, Brain, Sparkles } from 'lucide-react';
-import type { AppLanguage, SkillLevel } from '../types';
+import type { AppLanguage } from '../types';
 import type { ProgressSummary } from '../utils/progressTracker';
 import { CEFR_LEVELS, type CEFRLevel, getCEFRInfo } from '../utils/cefr';
 import { getCEFRCurriculumFocus } from '../utils/curriculum';
@@ -10,7 +10,6 @@ interface Props {
   appLang: AppLanguage;
   cefrLevel: CEFRLevel;
   setCefrLevel: (level: CEFRLevel) => void;
-  level: SkillLevel;
   progress: ProgressSummary;
   onSpeak: (scenarioId?: string) => void;
   onPractice: () => void;
@@ -18,7 +17,7 @@ interface Props {
 
 const skillLabels: Record<string,string> = { speaking:'Speaking', listening:'Listening', vocabulary:'Vocabulary', grammar:'Grammar', pronunciation:'Pronunciation', fluency:'Fluency' };
 
-export const LearningDashboard: React.FC<Props> = ({ appLang, cefrLevel, setCefrLevel, level, progress, onSpeak, onPractice }) => {
+export const LearningDashboard: React.FC<Props> = ({ appLang, cefrLevel, setCefrLevel, progress, onSpeak, onPractice }) => {
   const so = appLang === 'so';
   const info = getCEFRInfo(cefrLevel);
   const weakest = (Object.keys(progress.skills) as Array<keyof typeof progress.skills>).sort((a,b) => progress.skills[a].score - progress.skills[b].score)[0] ?? 'speaking';
