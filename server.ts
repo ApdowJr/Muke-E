@@ -310,9 +310,12 @@ app.post('/api/chat', async (req, res) => {
           `Session turns: ${String(adaptiveContext.sessionTurns ?? 0)}`,
           `Session corrections: ${String(adaptiveContext.sessionCorrections ?? 0)}`,
           `Session accuracy: ${String(adaptiveContext.sessionAccuracy ?? 0)}%`,
+          `Adaptive task accuracy: ${String(adaptiveContext.taskAccuracy ?? 0)}%`,
+          `Mastery state: ${String(adaptiveContext.masteryState || 'limited')}`,
+          `Mastery task type: ${String(adaptiveContext.masteryTaskType || 'conversation')}`,
           `Guidance: ${String(adaptiveContext.guidance || '')}`,
           'Treat this context as a decision aid, not as text to repeat to the learner.',
-          'Use session accuracy to decide whether the next response should simplify, reinforce, or challenge. Do not expose numeric scores unless the learner asks.',
+          'Use session accuracy and adaptive task accuracy to decide whether the next response should simplify, reinforce, or challenge. Treat task accuracy as evidence from completed adaptive tasks, not as a proficiency score. Do not expose numeric scores unless the learner asks.',
         ].join('\\n')
       : 'LIVE LEARNER MODEL: unavailable; rely on the learner\'s current turn and recent conversation.';
 
