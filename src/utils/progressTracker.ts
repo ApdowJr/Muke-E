@@ -182,16 +182,18 @@ export function recordSkillPractice(skill: SkillKey, score: number): ProgressSum
 export function recordConversationFeedback(options: {
   corrected: boolean;
   focusArea?: string;
+  focusPassed?: boolean;
 }): ProgressSummary {
   const current = getStoredProgress();
+  const focusPassed = options.focusPassed === true;
   const updates: Array<[SkillKey, number]> = [
-    ['speaking', options.corrected ? 65 : 82],
-    ['fluency', options.corrected ? 68 : 84],
-    ['grammar', options.corrected ? 58 : 86],
+    ['speaking', focusPassed ? 94 : options.corrected ? 65 : 82],
+    ['fluency', focusPassed ? 92 : options.corrected ? 68 : 84],
+    ['grammar', focusPassed ? 90 : options.corrected ? 58 : 86],
   ];
 
   if (options.focusArea?.toLowerCase().includes('vocab') || options.focusArea?.toLowerCase().includes('word')) {
-    updates.push(['vocabulary', options.corrected ? 62 : 84]);
+    updates.push(['vocabulary', focusPassed ? 92 : options.corrected ? 62 : 84]);
   }
 
   let next = current;
