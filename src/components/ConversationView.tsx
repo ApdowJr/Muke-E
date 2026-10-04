@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { AppLanguage, ChatMessage, SkillLevel, TargetLanguageCode, LearnerCorrection } from '../types';
 import { getLearnerWeaknesses, rememberCorrection, LearnerWeakness } from '../utils/learnerMemory';
+import { recordConversationFeedback } from '../utils/progressTracker';
 import { CONVERSATION_SCENARIOS, SUPPORTED_LANGUAGES } from '../utils/languages';
 import { RobustVoiceRecorder, speakText } from '../utils/speech';
 import { VoiceCircle } from './VoiceCircle';
@@ -223,6 +224,9 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
 
       if (tutorMsg.correction?.detected && tutorMsg.correction.natural) {
         setLearnerWeaknesses(rememberCorrection(tutorMsg.correction));
+        recordConversationFeedback({ corrected: true, focusArea: tutorMsg.correction.focusArea });
+      } else {
+        recordConversationFeedback({ corrected: false });
       }
 
       if (autoPlayAudio) {
