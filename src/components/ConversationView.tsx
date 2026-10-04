@@ -8,6 +8,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { AppLanguage, ChatMessage, SkillLevel, TargetLanguageCode, LearnerCorrection, LearningFocus, FocusPracticeResult } from '../types';
+import type { CEFRLevel } from '../utils/cefr';
 import { getLearnerWeaknesses, rememberCorrection, LearnerWeakness } from '../utils/learnerMemory';
 import { getAdaptivePracticeContext, getRecommendedScenario, getAdaptiveNextTask } from '../utils/adaptivePractice';
 import { getMasteryGuidance, recordAdaptiveTaskOutcome } from '../utils/learnerMastery';
@@ -21,6 +22,7 @@ interface ConversationViewProps {
   targetLang: TargetLanguageCode;
   appLang: AppLanguage;
   level: SkillLevel;
+  cefrLevel?: CEFRLevel;
   speechSpeed: number;
   autoPlayAudio: boolean;
   onSendToPronunciationLab: (phrase: string) => void;
@@ -35,6 +37,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
   targetLang,
   appLang,
   level,
+  cefrLevel = 'A1',
   speechSpeed,
   autoPlayAudio,
   onSendToPronunciationLab,
@@ -245,6 +248,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
           targetLanguage: currentLang.name,
           nativeLanguage: isSomali ? 'Somali' : 'English',
           level,
+          cefrLevel,
           scenario: `${scenarioTitle}`,
           tutorName: 'Moke E',
           learningFocus: learningFocus || null,
