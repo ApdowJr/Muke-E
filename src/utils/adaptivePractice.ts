@@ -117,6 +117,53 @@ export function getAdaptivePracticeContext(
   };
 }
 
+export type AdaptiveTaskType = 'guided' | 'transfer' | 'challenge' | 'conversation';
+
+export interface AdaptiveNextTask {
+  type: AdaptiveTaskType;
+  intent: string;
+  instruction: string;
+}
+
+export function getAdaptiveNextTask(
+  context: Pick<AdaptivePracticeContext, 'mode' | 'weakestSkill' | 'repeatedWeakness' | 'recentPerformance'>,
+  level: SkillLevel,
+): AdaptiveNextTask {
+  if (context.mode === 'simplify') {
+    return {
+      type: 'guided',
+      intent: 'Use a short, concrete sentence about the current scenario.',
+      instruction: level === 'Beginner'
+        ? 'Ask for one short sentence using familiar words and one clear idea.'
+        : 'Ask for one simple sentence, then one small detail if the learner succeeds.',
+    };
+  }
+
+  if (context.mode === 'reinforce' && context.repeatedWeakness) {
+    return {
+      type: 'transfer',
+      intent: 'Practice the repeated weakness in a different context.',
+      instruction: 'Require a new sentence that applies this pattern naturally: ' + context.repeatedWeakness,
+    };
+  }
+
+  if (context.mode === 'challenge' || context.recentPerformance === 'strong') {
+    return {
+      type: 'challenge',
+      intent: 'Transfer the skill with a slightly more demanding response.',
+      instruction: level === 'Advanced'
+        ? 'Ask for a nuanced reason, comparison, reformulation, or realistic follow-up.'
+        : 'Ask for a reason, comparison, past/future detail, or a different phrasing.',
+    };
+  }
+
+  return {
+    type: 'conversation',
+    intent: 'Keep producing language while practicing ' + context.weakestSkill + '.',
+    instruction: 'Ask one natural follow-up question that makes the learner produce a useful target-language response.',
+  };
+}
+
 export interface AdaptiveScenarioRecommendation {
   scenarioId: string;
   reason: string;
