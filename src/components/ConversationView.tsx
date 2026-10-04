@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { AppLanguage, ChatMessage, SkillLevel, TargetLanguageCode, LearnerCorrection, LearningFocus, FocusPracticeResult } from '../types';
 import { getLearnerWeaknesses, rememberCorrection, LearnerWeakness } from '../utils/learnerMemory';
-import { getAdaptivePracticeContext } from '../utils/adaptivePractice';
+import { getAdaptivePracticeContext, getRecommendedScenario } from '../utils/adaptivePractice';
 import { CONVERSATION_SCENARIOS, SUPPORTED_LANGUAGES } from '../utils/languages';
 import { RobustVoiceRecorder, speakText } from '../utils/speech';
 import { VoiceCircle } from './VoiceCircle';
@@ -46,7 +46,8 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
   const currentLang = SUPPORTED_LANGUAGES[targetLang];
   const isSomali = appLang === 'so';
 
-  const [activeScenarioId, setActiveScenarioId] = useState('general');
+  const [adaptiveContext, setAdaptiveContext] = useState(() => getAdaptivePracticeContext(level));
+  const [activeScenarioId, setActiveScenarioId] = useState(() => getRecommendedScenario(getAdaptivePracticeContext(level)).scenarioId);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isListening, setIsListening] = useState(false);
@@ -58,7 +59,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
   const [playingMsgId, setPlayingMsgId] = useState<string | null>(null);
   const [learnerWeaknesses, setLearnerWeaknesses] = useState<LearnerWeakness[]>([]);
   const [focusSuccesses, setFocusSuccesses] = useState(0);
-  const [adaptiveContext, setAdaptiveContext] = useState(() => getAdaptivePracticeContext(level));
+  const recommendedScenario = getRecommendedScenario(adaptiveContext);
 
   const voiceRecorderRef = useRef<RobustVoiceRecorder | null>(null);
   const chatScrollRef = useRef<HTMLDivElement | null>(null);
@@ -69,12 +70,16 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
 
   useEffect(() => {
     setLearnerWeaknesses(getLearnerWeaknesses());
-    setAdaptiveContext(getAdaptivePracticeContext(level));
+    const nextContext = getAdaptivePracticeContext(level);
+    setAdaptiveContext(nextContext);
+    setActiveScenarioId(getRecommendedScenario(nextContext).scenarioId);
   }, []);
 
   useEffect(() => {
     setFocusSuccesses(0);
-    setAdaptiveContext(getAdaptivePracticeContext(level));
+    const nextContext = getAdaptivePracticeContext(level);
+    setAdaptiveContext(nextContext);
+    if (!learningFocus) setActiveScenarioId(getRecommendedScenario(nextContext).scenarioId);
     if (learningFocus?.practicePrompt) setInputText(learningFocus.practicePrompt);
   }, [learningFocus]);
 
@@ -219,6 +224,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
           tutorName: 'Moke E',
           learningFocus: learningFocus || null,
           adaptiveContext,
+          recommendedScenario: activeScenarioId === recommendedScenario.scenarioId,
         }),
       });
 
@@ -315,7 +321,30 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
           )}
         </div>
       )}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide" aria-label={isSomali ? 'Mawduucyada' : 'Conversation topics'}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-text-muted">
+            {isSomali ? 'Tababar la qabsanaya' : 'Adaptive practice'}
+          </p>
+          <p className="mt-1 truncate text-sm font-semibold text-text-primary">
+            {isSomali ? 'Xirfadda ugu baahan tababar' : 'Next skill'} · {adaptiveContext.weakestSkill}
+          </p>
+        </div>
+        {activeScenarioId !== recommendedScenario.scenarioId && (
+          <button
+            type="button"
+            onClick={() => setActiveScenarioId(recommendedScenario.scenarioId)}
+            className="shrink-0 rounded-xl border border-primary/25 bg-primary/5 px-3 py-2 text-xs font-bold text-primary hover:bg-primary/10"
+          >
+            {isSomali ? 'Dooro talada' : 'Use recommendation'}
+          </button>
+        )}
+      </div>
+      <div className="rounded-xl border border-primary/15 bg-primary/5 px-3 py-2 text-xs leading-5 text-text-secondary">
+        <span className="font-semibold text-primary">{isSomali ? 'Talo:' : 'Recommendation:'}</span>{' '}
+        {isSomali ? 'Mawduucan wuxuu ku salaysan yahay xirfaddaada hadda iyo waxqabadkaaga.' : recommendedScenario.reason}
+      </div>
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide" aria-label={isSomali ? 'Mawduucyada' : 'Conversation topics'}>
         <span className="shrink-0 text-xs font-semibold text-text-muted">{isSomali ? 'Mawduuca' : 'Topic'}</span>
         {CONVERSATION_SCENARIOS.map((sc) => {
           const selected = sc.id === activeScenarioId;
