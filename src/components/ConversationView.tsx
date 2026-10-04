@@ -10,6 +10,7 @@ import {
 import { AppLanguage, ChatMessage, SkillLevel, TargetLanguageCode, LearnerCorrection, LearningFocus, FocusPracticeResult } from '../types';
 import { getLearnerWeaknesses, rememberCorrection, LearnerWeakness } from '../utils/learnerMemory';
 import { getAdaptivePracticeContext, getRecommendedScenario, getAdaptiveNextTask } from '../utils/adaptivePractice';
+import { getMasteryGuidance, recordAdaptiveTaskOutcome } from '../utils/learnerMastery';
 import { CONVERSATION_SCENARIOS, SUPPORTED_LANGUAGES } from '../utils/languages';
 import { RobustVoiceRecorder, speakText } from '../utils/speech';
 import { VoiceCircle } from './VoiceCircle';
@@ -63,6 +64,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
   const [sessionCorrections, setSessionCorrections] = useState(0);
   const recommendedScenario = getRecommendedScenario(adaptiveContext);
   const nextTask = getAdaptiveNextTask(adaptiveContext, level);
+  const masteryGuidance = getMasteryGuidance(adaptiveContext.weakestSkill, nextTask.type);
 
   const voiceRecorderRef = useRef<RobustVoiceRecorder | null>(null);
   const chatScrollRef = useRef<HTMLDivElement | null>(null);
@@ -235,6 +237,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
             corrections: sessionCorrections,
           },
           nextTask,
+          masteryGuidance,
         }),
       });
 
@@ -250,6 +253,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
         feedback: data.feedback,
         correction: data.correction as LearnerCorrection | undefined,
         focusResult: data.focusResult as FocusPracticeResult | undefined,
+        taskResult: data.taskResult,
         suggestedReplies: data.suggestedReplies || [],
         timestamp: Date.now(),
       };
@@ -260,6 +264,13 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
         setLearnerWeaknesses(rememberCorrection(tutorMsg.correction));
       }
       const focusPassed = learningFocus ? tutorMsg.focusResult?.passed === true : false;
+      if (tutorMsg.taskResult?.outcome && nextTask.type) {
+        recordAdaptiveTaskOutcome(
+          tutorMsg.taskResult.skill || adaptiveContext.weakestSkill,
+          nextTask.type,
+          tutorMsg.taskResult.outcome,
+        );
+      }
       const corrected = Boolean(tutorMsg.correction?.detected && tutorMsg.correction.natural);
       const nextTurns = sessionTurns + 1;
       const nextCorrections = sessionCorrections + (corrected ? 1 : 0);
