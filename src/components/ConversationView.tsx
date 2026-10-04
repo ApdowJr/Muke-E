@@ -87,6 +87,9 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
     setFocusSuccesses(0);
     setSessionTurns(0);
     setSessionCorrections(0);
+    setSessionTaskSuccesses(0);
+    setSessionTaskPartials(0);
+    setSessionTaskAttempts(0);
     const nextContext = getAdaptivePracticeContext(level, {
       focusSuccesses: 0,
       turns: 0,
