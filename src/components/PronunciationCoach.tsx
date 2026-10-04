@@ -189,10 +189,10 @@ export const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
     <div className="flex flex-col gap-6">
       {/* Title Section */}
       <div className="text-center space-y-1">
-        <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+        <h2 className="text-xl sm:text-2xl font-bold text-text-primary tracking-tight">
           {isSomali ? 'Saxidda Dhawaaqa' : 'Pronunciation Practice'}
         </h2>
-        <p className="text-xs sm:text-sm text-slate-400">
+        <p className="text-xs sm:text-sm text-text-muted">
           {isSomali
             ? 'Dhegayso weedha, ku celi codkaaga, oo hel qiimayn dhab ah.'
             : 'Listen to the phrase, repeat it aloud, and receive authentic feedback.'}
@@ -200,16 +200,16 @@ export const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
       </div>
 
       {/* Main Practice Panel */}
-      <div className="rounded-2xl border border-white/10 bg-slate-900/80 overflow-hidden flex flex-col shadow-md">
+      <div className="rounded-2xl border border-white/10 bg-app-surface/80 overflow-hidden flex flex-col shadow-md">
         {/* Content Area */}
         <div className="p-6 sm:p-8 space-y-6">
           {/* Target Phrase Section */}
           <div className="space-y-4">
             <div>
-              <span className="text-xs font-semibold text-blue-400 uppercase tracking-wider">
+              <span className="text-xs font-semibold text-primary uppercase tracking-wider">
                 {isSomali ? 'Ku Celi Weedhan:' : 'Pronounce this:'}
               </span>
-              <h3 className="text-2xl sm:text-3xl font-bold text-white tracking-tight leading-snug mt-2">
+              <h3 className="text-2xl sm:text-3xl font-bold text-text-primary tracking-tight leading-snug mt-2">
                 "{selectedPhrase}"
               </h3>
             </div>
@@ -221,11 +221,11 @@ export const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
               className={cn(
                 'inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-colors border',
                 isPlayingNative
-                  ? 'bg-blue-600/20 border-blue-500/30 text-blue-300'
-                  : 'bg-slate-800 hover:bg-slate-750 border-slate-700 text-slate-300 hover:text-white'
+                  ? 'bg-primary/20 border-primary/30 text-primary'
+                  : 'bg-app-elevated hover:bg-slate-750 border-app-border text-text-secondary hover:text-text-primary'
               )}
             >
-              <Volume2 className={cn('w-4 h-4', isPlayingNative && 'animate-bounce text-blue-400')} />
+              <Volume2 className={cn('w-4 h-4', isPlayingNative && 'animate-bounce text-primary')} />
               <span>{isPlayingNative ? (isSomali ? 'Wuu yeerayaa...' : 'Playing...') : (isSomali ? 'Dhegayso' : 'Listen')}</span>
             </button>
           </div>
@@ -238,17 +238,17 @@ export const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
               className={cn(
                 'w-24 h-24 sm:w-28 sm:h-28 rounded-full flex items-center justify-center transition-all font-semibold text-base shadow-lg',
                 isRecording
-                  ? 'bg-rose-600 text-white ring-8 ring-rose-500/30 animate-pulse scale-105'
+                  ? 'bg-danger text-text-primary ring-8 ring-rose-500/30 animate-pulse scale-105'
                   : isEvaluating
-                  ? 'bg-slate-800 text-slate-400 cursor-wait'
-                  : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/30 hover:scale-105 active:scale-95'
+                  ? 'bg-app-elevated text-text-muted cursor-wait'
+                  : 'bg-primary hover:bg-primary-hover text-text-primary shadow-blue-600/30 hover:scale-105 active:scale-95'
               )}
               title={isRecording ? 'Stop recording' : 'Start recording'}
             >
               {isRecording ? <MicOff className="w-10 h-10 sm:w-12 sm:h-12" /> : <Mic className="w-10 h-10 sm:w-12 sm:h-12" />}
             </button>
 
-            <p className="text-sm sm:text-base font-semibold text-slate-200 text-center">
+            <p className="text-sm sm:text-base font-semibold text-text-secondary text-center">
               {isRecording
                 ? isSomali
                   ? 'Wuu duubayaa... Markaad dhameyso guji halkan'
@@ -265,15 +265,15 @@ export const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
 
           {/* Error Banner */}
           {micError && (
-            <div className="bg-amber-950/40 border border-amber-800/30 text-amber-200 text-xs rounded-xl p-4 flex items-center justify-between gap-3">
+            <div className="bg-warning/10 border border-warning/30 text-warning text-xs rounded-xl p-4 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                <AlertCircle className="w-4 h-4 text-warning flex-shrink-0" />
                 <span>{micError}</span>
               </div>
               {onTriggerMicPermissionModal && (
                 <button
                   onClick={onTriggerMicPermissionModal}
-                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg text-xs transition-colors flex-shrink-0"
+                  className="px-3 py-1.5 bg-primary hover:bg-primary-hover text-text-primary font-bold rounded-lg text-xs transition-colors flex-shrink-0"
                 >
                   {isSomali ? 'Fur' : 'Enable'}
                 </button>
@@ -287,7 +287,7 @@ export const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
           <div className="border-t border-slate-800 px-6 sm:px-8 py-4">
             <button
               onClick={handlePlayUserAudio}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-750 text-slate-300 text-xs transition-colors"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-app-elevated hover:bg-slate-750 text-text-secondary text-xs transition-colors"
             >
               {isPlayingUser ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
               <span>{isSomali ? 'Dhegayso sidaad u tiri' : 'Play your recording'}</span>
@@ -304,7 +304,7 @@ export const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
               evaluationResult.overallScore >= 90
                 ? 'bg-emerald-950/30 border-emerald-500/30'
                 : evaluationResult.overallScore >= 75
-                ? 'bg-blue-950/30 border-blue-500/30'
+                ? 'bg-blue-950/30 border-primary/30'
                 : evaluationResult.overallScore >= 50
                 ? 'bg-amber-950/30 border-amber-500/30'
                 : 'bg-rose-950/30 border-rose-500/30'
@@ -312,10 +312,10 @@ export const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+                  <p className="text-xs font-semibold text-text-muted uppercase tracking-wide">
                     {isSomali ? 'Natiijada:' : 'Score:'}
                   </p>
-                  <p className="text-sm font-semibold text-slate-200 mt-1">
+                  <p className="text-sm font-semibold text-text-secondary mt-1">
                     {isSomali ? evaluationResult.summaryInSomali : evaluationResult.summaryInEnglish}
                   </p>
                 </div>
@@ -324,9 +324,9 @@ export const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
                   evaluationResult.overallScore >= 90
                     ? 'text-emerald-400 bg-emerald-950/40 border-emerald-500/40'
                     : evaluationResult.overallScore >= 75
-                    ? 'text-blue-400 bg-blue-950/40 border-blue-500/40'
+                    ? 'text-primary bg-primary/10 border-blue-500/40'
                     : evaluationResult.overallScore >= 50
-                    ? 'text-amber-400 bg-amber-950/40 border-amber-500/40'
+                    ? 'text-warning bg-warning/10 border-amber-500/40'
                     : 'text-rose-400 bg-rose-950/40 border-rose-500/40'
                 )}
                 >
@@ -335,8 +335,8 @@ export const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
               </div>
 
               {evaluationResult.recognizedText && (
-                <p className="text-xs text-slate-400 pt-2 border-t border-slate-700/50">
-                  <span className="font-semibold text-slate-300">
+                <p className="text-xs text-text-muted pt-2 border-t border-app-border/50">
+                  <span className="font-semibold text-text-secondary">
                     {isSomali ? 'Waxa la maqlay: ' : 'Heard: '}
                   </span>
                   "{evaluationResult.recognizedText}"
@@ -347,7 +347,7 @@ export const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
             {/* Word-by-word Breakdown */}
             {evaluationResult.words && evaluationResult.words.length > 0 && (
               <div className="space-y-2">
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+                <p className="text-xs font-semibold text-text-muted uppercase tracking-wide">
                   {isSomali ? 'Erayada:' : 'Word Breakdown:'}
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -360,7 +360,7 @@ export const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
                         w.status === 'good'
                           ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-300 hover:bg-emerald-900/40'
                           : w.status === 'fair'
-                          ? 'bg-amber-950/40 border-amber-500/30 text-amber-300 hover:bg-amber-900/40'
+                          ? 'bg-warning/10 border-amber-500/30 text-amber-300 hover:bg-amber-900/40'
                           : 'bg-rose-950/40 border-rose-500/30 text-rose-300 hover:bg-rose-900/40'
                       )}
                       title={w.tip || ''}
@@ -376,7 +376,7 @@ export const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
             {/* Next Phrase Button */}
             <button
               onClick={handleNextPhrase}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-bold transition-all shadow-md shadow-blue-600/20"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-text-primary text-xs sm:text-sm font-bold transition-all shadow-md shadow-blue-600/20"
             >
               <span>{isSomali ? 'Weedha Xigta' : 'Next Phrase'}</span>
               <ArrowRight className="w-4 h-4" />
@@ -392,7 +392,7 @@ export const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
           value={customInput}
           onChange={(e) => setCustomInput(e.target.value)}
           placeholder={isSomali ? 'Ama qor weedh aad adigu rabto...' : 'Or enter a custom phrase...'}
-          className="flex-1 bg-slate-800 border border-slate-700 focus:border-blue-500 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+          className="flex-1 bg-app-elevated border border-app-border focus:border-blue-500 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-text-primary placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
         />
         <button
           onClick={() => {
@@ -404,7 +404,7 @@ export const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
             }
           }}
           disabled={!customInput.trim()}
-          className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-white text-xs sm:text-sm font-semibold rounded-xl transition-colors"
+          className="px-4 py-2.5 bg-app-elevated hover:border-app-border disabled:opacity-40 text-text-primary text-xs sm:text-sm font-semibold rounded-xl transition-colors"
         >
           {isSomali ? 'Dooro' : 'Set'}
         </button>
