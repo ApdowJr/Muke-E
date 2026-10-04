@@ -365,7 +365,6 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
         <span className="font-semibold text-text-primary">{isSomali ? 'Hawlta xigta:' : 'Next task:'}</span>{' '}
         {nextTask.intent}
       </div>
-      </div>
             <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide" aria-label={isSomali ? 'Mawduucyada' : 'Conversation topics'}>
         <span className="shrink-0 text-xs font-semibold text-text-muted">{isSomali ? 'Mawduuca' : 'Topic'}</span>
         {CONVERSATION_SCENARIOS.map((sc) => {
