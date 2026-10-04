@@ -2,8 +2,9 @@ import React from 'react';
 import { X, Flame, Activity, TrendingUp, BookOpen, Mic2, Headphones, MessageSquare, Brain, Gauge, ArrowRight } from 'lucide-react';
 import { AppLanguage } from '../types';
 import { ProgressSummary, SkillKey } from '../utils/progressTracker';
+import { getLearningFocus, LearnerWeakness } from '../utils/learnerMemory';
 
-interface LearningProgressModalProps { isOpen: boolean; onClose: () => void; appLang: AppLanguage; progress: ProgressSummary; }
+interface LearningProgressModalProps { isOpen: boolean; onClose: () => void; appLang: AppLanguage; progress: ProgressSummary; onStartFocus?: (focus: LearnerWeakness) => void; }
 
 const SKILL_META: Record<SkillKey, { label: string; labelSo: string; icon: React.ElementType }> = {
   speaking: { label: 'Speaking', labelSo: 'Hadalka', icon: MessageSquare },
@@ -20,10 +21,11 @@ function getNextFocus(progress: ProgressSummary): SkillKey | null {
   return practiced.reduce((weakest, key) => progress.skills[key].score < progress.skills[weakest].score ? key : weakest, practiced[0]);
 }
 
-export const LearningProgressModal: React.FC<LearningProgressModalProps> = ({ isOpen, onClose, appLang, progress }) => {
+export const LearningProgressModal: React.FC<LearningProgressModalProps> = ({ isOpen, onClose, appLang, progress, onStartFocus }) => {
   const isSomali = appLang === 'so';
   if (!isOpen) return null;
   const nextFocus = getNextFocus(progress);
+  const learningFocus = getLearningFocus();
   const hasActivity = progress.totalCount > 0 || Object.values(progress.skills).some((skill) => skill.practiceCount > 0);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-3 backdrop-blur-sm">
@@ -49,6 +51,19 @@ export const LearningProgressModal: React.FC<LearningProgressModalProps> = ({ is
             })}
           </div>
         </section>
+        {learningFocus && <section className="mt-5 rounded-2xl border border-primary/20 bg-primary/5 p-4 sm:p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 text-primary"><Brain className="h-4 w-4" /><span className="text-xs font-bold uppercase tracking-[0.14em]">{isSomali ? 'Diiradda gaarka ah' : 'Personal focus'}</span></div>
+              <h3 className="mt-2 text-sm font-bold">{isSomali ? 'Ku shaqee khaladkii Muke-E kaa helay.' : 'Work on a pattern Muke-E has noticed.'}</h3>
+              <p className="mt-2 text-sm text-text-secondary">“{learningFocus.phrase}” → “{learningFocus.correction}”</p>
+              <p className="mt-2 text-xs leading-5 text-text-muted">{learningFocus.practicePrompt} · {learningFocus.count} {isSomali ? 'jeer' : 'times'}</p>
+            </div>
+            <button onClick={() => { onStartFocus?.(learningFocus); onClose(); }} className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-xs font-bold text-white transition hover:opacity-90">
+              <ArrowRight className="h-3.5 w-3.5" />{isSomali ? 'Ku celceli hadda' : 'Practice now'}
+            </button>
+          </div>
+        </section>}
         <section className="mt-5 grid gap-3 rounded-2xl border border-app-border bg-primary/5 p-4 sm:grid-cols-[1fr_auto] sm:items-center sm:p-5">
           <div className="flex gap-3"><div className="rounded-xl bg-primary/10 p-2.5 text-primary"><ArrowRight className="h-4 w-4" /></div><div><h3 className="text-sm font-bold">{nextFocus ? (isSomali ? `Maanta ku celi ${SKILL_META[nextFocus].labelSo}.` : `Practice ${SKILL_META[nextFocus].label.toLowerCase()} next.`) : (isSomali ? 'Bilow wada hadal si Muke-E u barto meelaha aad u baahan tahay.' : 'Start a conversation so Muke-E can learn what you need.')}</h3><p className="mt-1 text-xs leading-5 text-text-secondary">{isSomali ? 'Horumarku wuxuu ka yimaadaa ku celcelin joogto ah, ma aha tirooyin keliya.' : 'Progress comes from repeated practice, not numbers alone.'}</p></div></div>
           <button onClick={onClose} className="inline-flex min-h-10 items-center justify-center rounded-xl bg-primary px-4 text-xs font-bold text-white transition hover:opacity-90">{isSomali ? 'Sii wad' : 'Keep learning'}</button>
