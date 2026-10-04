@@ -267,6 +267,8 @@ app.post('/api/chat', async (req, res) => {
         translation: `Salaan! Waxaan ahay ${tutorName}. Sideen kuugu caawin karaa inaad maanta barato ${targetLanguage}?`,
         phonetic: '/həˈloʊ aɪ æm moʊk i/',
         feedback: 'Ku hadal ama qor hadalkaaga si aan kuugu saxo dhawaaqa iyo naxwaha!',
+        focusResult: { passed: false, feedback: '' },
+        correction: { detected: '', natural: '', explanation: '', focusArea: '', practicePrompt: '' },
         suggestedReplies: [
           { text: 'I want to practice speaking daily phrases.', translation: 'Waxaan rabaa inaan ku tababarto hadallada maalinlaha ah.' },
           { text: 'Can you teach me basic greetings?', translation: 'Ma i bari kartaa salaamaha aasaasiga ah?' },
@@ -381,6 +383,7 @@ Your Goal:
       phonetic: `/aɪ hɜːrd juː/`,
       feedback: isSomali ? 'Aad bay u wanaagsan tahay! Ku hadal mar kale si aad u sii horumariso.' : 'Great job! Keep speaking.',
       correction: { detected: '', natural: '', explanation: '', focusArea: '', practicePrompt: '' },
+      focusResult: { passed: false, feedback: '' },
       suggestedReplies: [
         { text: 'How do you say thank you in your language?', translation: isSomali ? 'Sidee loo yiraahdaa mahadsanid afkan?' : 'How do you say thank you?' },
         { text: 'I want to practice conversation.', translation: isSomali ? 'Waxaan rabaa inaan ku tababarto hadal.' : 'I want to practice.' },
