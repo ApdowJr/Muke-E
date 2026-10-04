@@ -400,7 +400,24 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
                   isUser ? 'rounded-br-md bg-primary text-white' : 'rounded-bl-md border border-app-border bg-app-elevated text-text-primary')}>
                   <p className="font-medium">{msg.text}</p>
                   {!isUser && msg.focusResult?.passed && <div className="mb-2 rounded-xl border border-primary/20 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary">{isSomali ? '🎯 Waad qabatay! Qaabkan si sax ah ayaad u adeegsatay.' : '🎯 You nailed it! You used the target pattern correctly.'}</div>}
-                  {!isUser && msg.translation && <p className="mt-2 border-t border-app-border pt-2 text-xs text-text-secondary">{msg.translation}</p>}
+                  {!isUser && msg.taskResult?.feedback && <div className={cn(
+                    'mb-2 rounded-xl border px-3 py-2 text-xs leading-5',
+                    msg.taskResult.outcome === 'success'
+                      ? 'border-primary/20 bg-primary/10 text-primary'
+                      : msg.taskResult.outcome === 'partial'
+                        ? 'border-warning/20 bg-warning/10 text-text-secondary'
+                        : 'border-app-border bg-app-surface text-text-secondary'
+                  )}>
+                    <span className="font-bold">
+                      {msg.taskResult.outcome === 'success'
+                        ? (isSomali ? '✓ Hawsha waa sax' : '✓ Task completed')
+                        : msg.taskResult.outcome === 'partial'
+                          ? (isSomali ? 'Wax yar ayaa ka dhiman' : 'Almost there')
+                          : (isSomali ? 'Aan mar kale isku dayno' : 'Let’s try it again')}
+                    </span>{' '}
+                    {msg.taskResult.feedback}
+                  </div>}
+                  {!isUser && msg.translation && <p className="mt-2 border-t border-app-border pt-2 text-xs text-text-secondary">{msg.translation}</p>
                 </div>
                 {!isUser && <div className="flex items-center gap-4 px-1 text-xs text-text-muted">
                   <button onClick={() => handleSpeak(msg.text, msg.id)} className={cn('flex items-center gap-1.5 font-semibold hover:text-primary', isPlaying && 'text-primary')}>
