@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { AppLanguage, ChatMessage, SkillLevel, TargetLanguageCode, LearnerCorrection, LearningFocus, FocusPracticeResult } from '../types';
 import { getLearnerWeaknesses, rememberCorrection, LearnerWeakness } from '../utils/learnerMemory';
-import { getAdaptivePracticeContext, getRecommendedScenario } from '../utils/adaptivePractice';
+import { getAdaptivePracticeContext, getRecommendedScenario, getAdaptiveNextTask } from '../utils/adaptivePractice';
 import { CONVERSATION_SCENARIOS, SUPPORTED_LANGUAGES } from '../utils/languages';
 import { RobustVoiceRecorder, speakText } from '../utils/speech';
 import { VoiceCircle } from './VoiceCircle';
@@ -62,6 +62,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
   const [sessionTurns, setSessionTurns] = useState(0);
   const [sessionCorrections, setSessionCorrections] = useState(0);
   const recommendedScenario = getRecommendedScenario(adaptiveContext);
+  const nextTask = getAdaptiveNextTask(adaptiveContext, level);
 
   const voiceRecorderRef = useRef<RobustVoiceRecorder | null>(null);
   const chatScrollRef = useRef<HTMLDivElement | null>(null);
@@ -233,6 +234,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
             turns: sessionTurns,
             corrections: sessionCorrections,
           },
+          nextTask,
         }),
       });
 
@@ -358,6 +360,11 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
       <div className="rounded-xl border border-primary/15 bg-primary/5 px-3 py-2 text-xs leading-5 text-text-secondary">
         <span className="font-semibold text-primary">{isSomali ? 'Talo:' : 'Recommendation:'}</span>{' '}
         {isSomali ? 'Mawduucan wuxuu ku salaysan yahay xirfaddaada hadda iyo waxqabadkaaga.' : recommendedScenario.reason}
+      </div>
+      <div className="rounded-xl border border-app-border bg-app-surface px-3 py-2.5 text-xs leading-5 text-text-secondary">
+        <span className="font-semibold text-text-primary">{isSomali ? 'Hawlta xigta:' : 'Next task:'}</span>{' '}
+        {nextTask.intent}
+      </div>
       </div>
             <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide" aria-label={isSomali ? 'Mawduucyada' : 'Conversation topics'}>
         <span className="shrink-0 text-xs font-semibold text-text-muted">{isSomali ? 'Mawduuca' : 'Topic'}</span>
