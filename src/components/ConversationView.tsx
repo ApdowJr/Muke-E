@@ -7,7 +7,8 @@ import {
   Sparkles,
   AlertCircle,
 } from 'lucide-react';
-import { AppLanguage, ChatMessage, SkillLevel, TargetLanguageCode } from '../types';
+import { AppLanguage, ChatMessage, SkillLevel, TargetLanguageCode, LearnerCorrection } from '../types';
+import { getLearnerWeaknesses, rememberCorrection, LearnerWeakness } from '../utils/learnerMemory';
 import { CONVERSATION_SCENARIOS, SUPPORTED_LANGUAGES } from '../utils/languages';
 import { RobustVoiceRecorder, speakText } from '../utils/speech';
 import { VoiceCircle } from './VoiceCircle';
@@ -48,6 +49,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
   const [micStream, setMicStream] = useState<MediaStream | null>(null);
   const [micErrorMessage, setMicErrorMessage] = useState<string | null>(null);
   const [playingMsgId, setPlayingMsgId] = useState<string | null>(null);
+  const [learnerWeaknesses, setLearnerWeaknesses] = useState<LearnerWeakness[]>([]);
 
   const voiceRecorderRef = useRef<RobustVoiceRecorder | null>(null);
   const chatScrollRef = useRef<HTMLDivElement | null>(null);
@@ -55,6 +57,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
   const activeScenario =
     CONVERSATION_SCENARIOS.find((s) => s.id === activeScenarioId) ||
     CONVERSATION_SCENARIOS[0];
+
+  useEffect(() => {
+    setLearnerWeaknesses(getLearnerWeaknesses());
+  }, []);
 
   useEffect(() => {
     const welcome = currentLang.welcomeMessage;
@@ -208,11 +214,16 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
         translation: data.translation,
         phonetic: data.phonetic,
         feedback: data.feedback,
+        correction: data.correction as LearnerCorrection | undefined,
         suggestedReplies: data.suggestedReplies || [],
         timestamp: Date.now(),
       };
 
       setMessages((prev) => [...prev, tutorMsg]);
+
+      if (tutorMsg.correction?.detected && tutorMsg.correction.natural) {
+        setLearnerWeaknesses(rememberCorrection(tutorMsg.correction));
+      }
 
       if (autoPlayAudio) {
         await handleSpeak(tutorMsg.text, tutorMsg.id);
