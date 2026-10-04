@@ -87,17 +87,6 @@ export function getAdaptivePracticeContext(
           ? 'struggling'
           : 'developing';
 
-  const masteryTaskTypes: AdaptiveTaskType[] = ['guided', 'transfer', 'challenge', 'conversation'];
-  const mastery = masteryTaskTypes
-    .map((taskType) => ({ taskType, record: getAdaptiveMastery(skill, taskType) }))
-    .sort((a, b) => b.record.consecutiveSuccesses - a.record.consecutiveSuccesses || b.record.successes - a.record.successes)[0];
-  const masteryState: AdaptivePracticeContext['masteryState'] =
-    mastery.record.consecutiveSuccesses >= 3 && mastery.record.attempts >= 4
-      ? 'transfer-ready'
-      : mastery.record.attempts >= 2 && (mastery.record.successes > 0 || mastery.record.partials > 0)
-        ? 'developing'
-        : 'limited';
-
   const repeatedWeakness = weakness && weakness.count >= 2
     ? weakness.correction
     : '';
@@ -108,12 +97,33 @@ export function getAdaptivePracticeContext(
   if (recentPerformance === 'struggling') {
     mode = 'simplify';
     difficultyDelta = -1;
-  } else if (masteryState === 'transfer-ready' || recentPerformance === 'strong' || sessionSuccesses >= 2) {
+  } else if (recentPerformance === 'strong' || sessionSuccesses >= 2) {
     mode = 'challenge';
     difficultyDelta = 1;
   } else if (repeatedWeakness) {
     mode = 'reinforce';
     difficultyDelta = 0;
+  }
+
+  const masteryTaskType: AdaptiveTaskType =
+    mode === 'simplify'
+      ? 'guided'
+      : mode === 'reinforce'
+        ? 'transfer'
+        : mode === 'challenge'
+          ? 'challenge'
+          : 'conversation';
+  const mastery = getAdaptiveMastery(skill, masteryTaskType);
+  const masteryState: AdaptivePracticeContext['masteryState'] =
+    mastery.consecutiveSuccesses >= 3 && mastery.attempts >= 4
+      ? 'transfer-ready'
+      : mastery.attempts >= 2 && (mastery.successes > 0 || mastery.partials > 0)
+        ? 'developing'
+        : 'limited';
+
+  if (masteryState === 'transfer-ready' && mode !== 'simplify') {
+    mode = 'challenge';
+    difficultyDelta = 1;
   }
 
   const levelHint =
@@ -146,7 +156,7 @@ export function getAdaptivePracticeContext(
     sessionAccuracy,
     taskAccuracy,
     masteryState,
-    masteryTaskType: mastery.taskType,
+    masteryTaskType,
     guidance: [levelHint, modeHint, masteryState === 'transfer-ready' ? 'Use a new context because repeated transfer evidence is available.' : ''].filter(Boolean).join(' '),
   };
 }
