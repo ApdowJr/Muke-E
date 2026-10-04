@@ -142,7 +142,10 @@ export interface AdaptiveNextTask {
 }
 
 export function getAdaptiveNextTask(
-  context: Pick<AdaptivePracticeContext, 'mode' | 'weakestSkill' | 'repeatedWeakness' | 'recentPerformance'>,
+  context: Pick<
+    AdaptivePracticeContext,
+    'mode' | 'weakestSkill' | 'repeatedWeakness' | 'recentPerformance' | 'masteryState' | 'masteryTaskType'
+  >,
   level: SkillLevel,
 ): AdaptiveNextTask {
   if (context.mode === 'simplify') {
@@ -163,7 +166,15 @@ export function getAdaptiveNextTask(
     };
   }
 
-  if (context.mode === 'challenge' || context.recentPerformance === 'strong') {
+  if (context.masteryState === 'developing' && (context.masteryTaskType === 'guided' || context.masteryTaskType === 'conversation')) {
+    return {
+      type: 'transfer',
+      intent: 'Move a developing skill from guided practice into a fresh context.',
+      instruction: 'Ask for a new sentence that uses the same skill without repeating the previous example.',
+    };
+  }
+
+  if (context.mode === 'challenge' || context.masteryState === 'transfer-ready' || context.recentPerformance === 'strong') {
     return {
       type: 'challenge',
       intent: 'Transfer the skill with a slightly more demanding response.',
