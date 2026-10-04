@@ -189,7 +189,7 @@ export default function App() {
                   onIncrementPractice={handleListeningPractice} onTriggerMicPermissionModal={()=>setIsMicModalOpen(true)}/>
               </div>
             )}
-            {activeTab==='speak' && <ConversationView targetLang={targetLang} appLang={appLang} level={level} speechSpeed={speechSpeed} autoPlayAudio={autoPlayAudio}
+            {activeTab==='speak' && <ConversationView targetLang={targetLang} appLang={appLang} level={level} cefrLevel={cefrLevel} speechSpeed={speechSpeed} autoPlayAudio={autoPlayAudio}
               learningFocus={learningFocus} onExitFocus={handleExitFocus} onSendToPronunciationLab={handleNavigateToPronunciation}
               onIncrementPractice={handleConversationPractice} onRecordFeedback={handleConversationFeedback} onTriggerMicPermissionModal={()=>setIsMicModalOpen(true)}/>}
             {activeTab==='progress' && <ProgressDashboard appLang={appLang} progress={progressData} cefrLevel={cefrLevel} onStartFocus={handleStartFocus}/>}
