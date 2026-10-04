@@ -710,12 +710,15 @@ async function startServer() {
   const httpServer = createHttpServer(app);
 
   if (process.env.NODE_ENV !== 'production') {
+    // The hosted preview does not proxy Vite's WebSocket upgrade endpoint.
+    // Keep Vite in middleware mode, but disable both the HMR client and watcher.
+    process.env.DISABLE_HMR = 'true';
     const vite = await createViteServer({
       server: {
         middlewareMode: true,
-        // The preview proxy does not forward Vite's custom HMR upgrade reliably.
-        // Disable the injected client so it cannot report closed-before-open sockets.
         hmr: false,
+        ws: false,
+        watch: null,
       },
       appType: 'spa',
     });
