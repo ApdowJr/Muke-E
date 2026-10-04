@@ -2,6 +2,7 @@ import { SkillLevel } from '../types';
 import { getStoredProgress, SkillKey } from './progressTracker';
 import { getLearnerWeaknesses, LearnerWeakness } from './learnerMemory';
 import { getAdaptiveMastery } from './learnerMastery';
+import { getCurriculumFocus } from './curriculum';
 
 export type AdaptiveMode = 'simplify' | 'reinforce' | 'challenge' | 'steady';
 
@@ -20,6 +21,8 @@ export interface AdaptivePracticeContext {
   taskAccuracy: number;
   masteryState: 'limited' | 'developing' | 'transfer-ready';
   masteryTaskType: AdaptiveTaskType;
+  curriculumObjective: string;
+  curriculumTask: string;
   guidance: string;
 }
 
@@ -127,6 +130,8 @@ export function getAdaptivePracticeContext(
     masteryTaskType = 'challenge';
   }
 
+  const curriculum = getCurriculumFocus(level, skill);
+
   const levelHint =
     level === 'Beginner'
       ? 'Keep output short and concrete.'
@@ -158,7 +163,9 @@ export function getAdaptivePracticeContext(
     taskAccuracy,
     masteryState,
     masteryTaskType,
-    guidance: [levelHint, modeHint, masteryState === 'transfer-ready' ? 'Use a new context because repeated transfer evidence is available.' : ''].filter(Boolean).join(' '),
+    curriculumObjective: curriculum.objective,
+    curriculumTask: curriculum.task,
+    guidance: [levelHint, `Curriculum objective: ${curriculum.objective}`, `Next curriculum task: ${curriculum.task}`, modeHint, masteryState === 'transfer-ready' ? 'Use a new context because repeated transfer evidence is available.' : ''].filter(Boolean).join(' '),
   };
 }
 
