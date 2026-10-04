@@ -1,4 +1,4 @@
-import { AdaptiveTaskType } from './adaptivePractice';
+import type { AdaptiveTaskType } from './adaptivePractice';
 
 export type MasteryOutcome = 'success' | 'partial' | 'fail';
 
