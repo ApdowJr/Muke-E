@@ -17,7 +17,7 @@ import { CEFRLevel, bandForCEFR } from './utils/cefr';
 export default function App() {
   const [targetLang, setTargetLang] = useState<TargetLanguageCode>('en');
   const [appLang, setAppLang] = useState<AppLanguage>('so');
-  const [showLanding, setShowLanding] = useState(true);
+  const [isHome, setIsHome] = useState(() => window.location.pathname === '/' || window.location.pathname === '');
   const [activeTab, setActiveTab] = useState<TabType>('learn');
   const [cefrLevel, setCefrLevel] = useState<CEFRLevel>('A1');
   const [level, setLevel] = useState<SkillLevel>('Beginner');
@@ -32,8 +32,10 @@ export default function App() {
   const isSomali = appLang === 'so';
   const currentLang = SUPPORTED_LANGUAGES[targetLang];
 
-
   useEffect(() => {
+    const handlePopState = () => setIsHome(window.location.pathname === '/' || window.location.pathname === '');
+    window.addEventListener('popstate', handlePopState);
+
     try {
       const savedTarget = localStorage.getItem('moke_e_target_lang') as TargetLanguageCode;
       if (savedTarget && SUPPORTED_LANGUAGES[savedTarget]) setTargetLang(savedTarget);
@@ -54,7 +56,15 @@ export default function App() {
         })
         .catch(() => {});
     }
+
+    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
+
+  const openLearningApp = () => {
+    window.history.pushState({}, '', '/app');
+    setIsHome(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const handleSetTargetLang = (code: TargetLanguageCode) => {
     setTargetLang(code);
@@ -123,13 +133,12 @@ export default function App() {
     setActiveTab('speak');
   };
 
-
-  if (showLanding) {
+  if (isHome) {
     return (
       <LandingPage
         appLang={appLang}
         targetLang={targetLang}
-        onStartLearning={() => setShowLanding(false)}
+        onStartLearning={openLearningApp}
         onSetTargetLang={handleSetTargetLang}
       />
     );
