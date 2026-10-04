@@ -6,7 +6,6 @@ import { ConversationView } from './components/ConversationView';
 import { PronunciationCoach } from './components/PronunciationCoach';
 import { TranscriptionStudio } from './components/TranscriptionStudio';
 import { MicrophonePermissionModal } from './components/MicrophonePermissionModal';
-import { LearningProgressModal } from './components/LearningProgressModal';
 import { LearningDashboard } from './components/LearningDashboard';
 import { ProgressDashboard } from './components/ProgressDashboard';
 import { SUPPORTED_LANGUAGES } from './utils/languages';
@@ -25,7 +24,6 @@ export default function App() {
   const [pronunciationSeedPhrase, setPronunciationSeedPhrase] = useState('');
   const [isMicModalOpen, setIsMicModalOpen] = useState(false);
   const [isMicPermitted, setIsMicPermitted] = useState(false);
-  const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
   const [progressData, setProgressData] = useState<ProgressSummary>(() => getStoredProgress());
   const [learningFocus, setLearningFocus] = useState<LearningFocus | null>(null);
 
@@ -210,7 +208,6 @@ export default function App() {
         <div className="mx-auto grid max-w-lg grid-cols-4 gap-1">{navItems.map(item=>{const Icon=item.icon;const active=activeTab===item.id;return <button key={item.id} onClick={()=>setActiveTab(item.id)} aria-current={active?'page':undefined} className={`flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-xl text-[10px] font-bold ${active?'text-primary':'text-text-muted'}`}><Icon className="h-5 w-5"/>{item.short}</button>})}</div>
       </nav>
 
-      <LearningProgressModal isOpen={isProgressModalOpen} onClose={()=>setIsProgressModalOpen(false)} appLang={appLang} progress={progressData} onStartFocus={handleStartFocus}/>
       <MicrophonePermissionModal isOpen={isMicModalOpen} onClose={()=>setIsMicModalOpen(false)} appLang={appLang} onPermissionGranted={()=>setIsMicPermitted(true)}/>
     </div>
   );
