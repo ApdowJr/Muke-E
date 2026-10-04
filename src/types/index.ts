@@ -110,4 +110,4 @@ export interface LiveTranscriptItem {
   speaker: 'user' | 'system';
 }
 
-export type TabType = 'conversation' | 'pronunciation' | 'transcription' | 'phrasebook';
+export type TabType = 'learn' | 'practice' | 'speak' | 'progress';
