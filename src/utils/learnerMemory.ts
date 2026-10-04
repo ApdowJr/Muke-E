@@ -10,6 +10,7 @@ export interface LearnerWeakness {
   phrase: string;
   correction: string;
   focusArea: string;
+  practicePrompt: string;
   count: number;
   lastSeen: number;
 }
@@ -36,12 +37,14 @@ export function rememberCorrection(correction: LearnerCorrection): LearnerWeakne
     existing.count += 1;
     existing.correction = correction.natural;
     existing.focusArea = correction.focusArea;
+    existing.practicePrompt = correction.practicePrompt || `Practice this naturally: ${correction.natural}`;
     existing.lastSeen = Date.now();
   } else {
     current.unshift({
       phrase: correction.detected.trim(),
       correction: correction.natural.trim(),
       focusArea: correction.focusArea || 'Natural language',
+      practicePrompt: correction.practicePrompt || `Practice this naturally: ${correction.natural.trim()}`,
       count: 1,
       lastSeen: Date.now(),
     });
@@ -61,4 +64,11 @@ export function clearLearnerMemory() {
   try {
     localStorage.removeItem(STORAGE_KEY);
   } catch {}
+}
+
+
+export function getLearningFocus(): LearnerWeakness | null {
+  const weaknesses = getLearnerWeaknesses();
+  if (weaknesses.length === 0) return null;
+  return [...weaknesses].sort((a, b) => b.count - a.count || b.lastSeen - a.lastSeen)[0];
 }
