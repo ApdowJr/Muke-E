@@ -69,6 +69,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
   }, []);
 
   useEffect(() => {
+    if (learningFocus?.practicePrompt) setInputText(learningFocus.practicePrompt);
+  }, [learningFocus]);
+
+  useEffect(() => {
     const welcome = currentLang.welcomeMessage;
     const initialMsg: ChatMessage = {
       id: 'welcome-' + Date.now(),
