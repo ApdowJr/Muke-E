@@ -7,7 +7,7 @@ import {
   Sparkles,
   AlertCircle,
 } from 'lucide-react';
-import { AppLanguage, ChatMessage, SkillLevel, TargetLanguageCode, LearnerCorrection, LearningFocus } from '../types';
+import { AppLanguage, ChatMessage, SkillLevel, TargetLanguageCode, LearnerCorrection, LearningFocus, FocusPracticeResult } from '../types';
 import { getLearnerWeaknesses, rememberCorrection, LearnerWeakness } from '../utils/learnerMemory';
 import { CONVERSATION_SCENARIOS, SUPPORTED_LANGUAGES } from '../utils/languages';
 import { RobustVoiceRecorder, speakText } from '../utils/speech';
@@ -23,7 +23,7 @@ interface ConversationViewProps {
   autoPlayAudio: boolean;
   onSendToPronunciationLab: (phrase: string) => void;
   onIncrementPractice: () => void;
-  onRecordFeedback?: (feedback: { corrected: boolean; focusArea?: string }) => void;
+  onRecordFeedback?: (feedback: { corrected: boolean; focusArea?: string; focusPassed?: boolean }) => void;
   learningFocus?: LearningFocus | null;
   onExitFocus?: () => void;
   onTriggerMicPermissionModal: () => void;
@@ -226,6 +226,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
         phonetic: data.phonetic,
         feedback: data.feedback,
         correction: data.correction as LearnerCorrection | undefined,
+        focusResult: data.focusResult as FocusPracticeResult | undefined,
         suggestedReplies: data.suggestedReplies || [],
         timestamp: Date.now(),
       };
@@ -234,10 +235,12 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
 
       if (tutorMsg.correction?.detected && tutorMsg.correction.natural) {
         setLearnerWeaknesses(rememberCorrection(tutorMsg.correction));
-        onRecordFeedback?.({ corrected: true, focusArea: tutorMsg.correction.focusArea });
-      } else {
-        onRecordFeedback?.({ corrected: false });
       }
+      onRecordFeedback?.({
+        corrected: Boolean(tutorMsg.correction?.detected && tutorMsg.correction.natural),
+        focusArea: tutorMsg.correction?.focusArea,
+        focusPassed: learningFocus ? tutorMsg.focusResult?.passed === true : false,
+      });
 
       if (autoPlayAudio) {
         await handleSpeak(tutorMsg.text, tutorMsg.id);
@@ -303,6 +306,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
                 <div className={cn('rounded-2xl px-4 py-3 text-sm leading-6',
                   isUser ? 'rounded-br-md bg-primary text-white' : 'rounded-bl-md border border-app-border bg-app-elevated text-text-primary')}>
                   <p className="font-medium">{msg.text}</p>
+                  {!isUser && msg.focusResult?.passed && <div className="mb-2 rounded-xl border border-primary/20 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary">{isSomali ? '🎯 Waad qabatay! Qaabkan si sax ah ayaad u adeegsatay.' : '🎯 You nailed it! You used the target pattern correctly.'}</div>}
                   {!isUser && msg.translation && <p className="mt-2 border-t border-app-border pt-2 text-xs text-text-secondary">{msg.translation}</p>}
                 </div>
                 {!isUser && <div className="flex items-center gap-4 px-1 text-xs text-text-muted">
