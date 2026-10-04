@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { AppLanguage, ChatMessage, SkillLevel, TargetLanguageCode, LearnerCorrection, LearningFocus, FocusPracticeResult } from '../types';
 import { getLearnerWeaknesses, rememberCorrection, LearnerWeakness } from '../utils/learnerMemory';
+import { getAdaptivePracticeContext } from '../utils/adaptivePractice';
 import { CONVERSATION_SCENARIOS, SUPPORTED_LANGUAGES } from '../utils/languages';
 import { RobustVoiceRecorder, speakText } from '../utils/speech';
 import { VoiceCircle } from './VoiceCircle';
@@ -57,6 +58,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
   const [playingMsgId, setPlayingMsgId] = useState<string | null>(null);
   const [learnerWeaknesses, setLearnerWeaknesses] = useState<LearnerWeakness[]>([]);
   const [focusSuccesses, setFocusSuccesses] = useState(0);
+  const [adaptiveContext, setAdaptiveContext] = useState(() => getAdaptivePracticeContext(level));
 
   const voiceRecorderRef = useRef<RobustVoiceRecorder | null>(null);
   const chatScrollRef = useRef<HTMLDivElement | null>(null);
@@ -67,10 +69,12 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
 
   useEffect(() => {
     setLearnerWeaknesses(getLearnerWeaknesses());
+    setAdaptiveContext(getAdaptivePracticeContext(level));
   }, []);
 
   useEffect(() => {
     setFocusSuccesses(0);
+    setAdaptiveContext(getAdaptivePracticeContext(level));
     if (learningFocus?.practicePrompt) setInputText(learningFocus.practicePrompt);
   }, [learningFocus]);
 
@@ -214,6 +218,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
           scenario: `${scenarioTitle}`,
           tutorName: 'Moke E',
           learningFocus: learningFocus || null,
+          adaptiveContext,
         }),
       });
 
@@ -240,6 +245,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
       }
       const focusPassed = learningFocus ? tutorMsg.focusResult?.passed === true : false;
       if (focusPassed) setFocusSuccesses((prev) => Math.min(prev + 1, 2));
+      setAdaptiveContext(getAdaptivePracticeContext(level, focusPassed ? Math.min(focusSuccesses + 1, 2) : focusSuccesses));
       onRecordFeedback?.({
         corrected: Boolean(tutorMsg.correction?.detected && tutorMsg.correction.natural),
         focusArea: tutorMsg.correction?.focusArea,
