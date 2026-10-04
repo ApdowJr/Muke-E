@@ -40,6 +40,11 @@ export interface LearningFocus {
   practicePrompt: string;
 }
 
+export interface FocusPracticeResult {
+  passed: boolean;
+  feedback: string;
+}
+
 export interface LearnerCorrection {
   detected: string;
   natural: string;
@@ -56,6 +61,7 @@ export interface ChatMessage {
   phonetic?: string;
   feedback?: string;
   correction?: LearnerCorrection;
+  focusResult?: FocusPracticeResult;
   suggestedReplies?: { text: string; translation: string }[];
   audioUrl?: string;
   timestamp: number;
