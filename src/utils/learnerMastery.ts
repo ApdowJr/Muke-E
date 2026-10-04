@@ -13,12 +13,50 @@ export interface MasteryRecord {
 
 const STORAGE_KEY = 'moke_e_adaptive_mastery_v1';
 
+const EMPTY_RECORD: MasteryRecord = {
+  attempts: 0,
+  successes: 0,
+  partials: 0,
+  consecutiveSuccesses: 0,
+  lastOutcome: null,
+  lastPracticedAt: null,
+};
+
+function isMasteryOutcome(value: unknown): value is MasteryOutcome {
+  return value === 'success' || value === 'partial' || value === 'fail';
+}
+
+function normalizeRecord(value: unknown): MasteryRecord {
+  if (!value || typeof value !== 'object') return { ...EMPTY_RECORD };
+  const record = value as Partial<MasteryRecord>;
+  return {
+    attempts: Number.isFinite(record.attempts) && record.attempts >= 0 ? Math.floor(record.attempts) : 0,
+    successes: Number.isFinite(record.successes) && record.successes >= 0 ? Math.floor(record.successes) : 0,
+    partials: Number.isFinite(record.partials) && record.partials >= 0 ? Math.floor(record.partials) : 0,
+    consecutiveSuccesses:
+      Number.isFinite(record.consecutiveSuccesses) && record.consecutiveSuccesses >= 0
+        ? Math.floor(record.consecutiveSuccesses)
+        : 0,
+    lastOutcome: isMasteryOutcome(record.lastOutcome) ? record.lastOutcome : null,
+    lastPracticedAt: typeof record.lastPracticedAt === 'string' ? record.lastPracticedAt : null,
+  };
+}
+
 function read(): Record<string, MasteryRecord> {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch (e) {}
-  return {};
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+
+    const normalized: Record<string, MasteryRecord> = {};
+    for (const [key, value] of Object.entries(parsed)) {
+      normalized[key] = normalizeRecord(value);
+    }
+    return normalized;
+  } catch (e) {
+    return {};
+  }
 }
 
 function keyFor(skill: string, taskType: AdaptiveTaskType): string {
@@ -32,14 +70,7 @@ export function recordAdaptiveTaskOutcome(
 ): MasteryRecord {
   const records = read();
   const key = keyFor(skill, taskType);
-  const previous = records[key] || {
-    attempts: 0,
-    successes: 0,
-    partials: 0,
-    consecutiveSuccesses: 0,
-    lastOutcome: null,
-    lastPracticedAt: null,
-  };
+  const previous = records[key] || { ...EMPTY_RECORD };
 
   const next: MasteryRecord = {
     attempts: previous.attempts + 1,
@@ -58,14 +89,7 @@ export function recordAdaptiveTaskOutcome(
 }
 
 export function getAdaptiveMastery(skill: string, taskType: AdaptiveTaskType): MasteryRecord {
-  return read()[keyFor(skill, taskType)] || {
-    attempts: 0,
-    successes: 0,
-    partials: 0,
-    consecutiveSuccesses: 0,
-    lastOutcome: null,
-    lastPracticedAt: null,
-  };
+  return read()[keyFor(skill, taskType)] || { ...EMPTY_RECORD };
 }
 
 export function getMasteryGuidance(skill: string, taskType: AdaptiveTaskType): string {
