@@ -9,6 +9,7 @@ import { MicrophonePermissionModal } from './components/MicrophonePermissionModa
 import { LearningProgressModal } from './components/LearningProgressModal';
 import { SUPPORTED_LANGUAGES } from './utils/languages';
 import { getStoredProgress, recordPracticeSession, recordSkillPractice, recordConversationFeedback, ProgressSummary } from './utils/progressTracker';
+import { LearnerWeakness } from './utils/learnerMemory';
 
 export default function App() {
   const [targetLang, setTargetLang] = useState<TargetLanguageCode>('en');
@@ -22,6 +23,7 @@ export default function App() {
   const [isMicPermitted, setIsMicPermitted] = useState(false);
   const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
   const [progressData, setProgressData] = useState<ProgressSummary>(() => getStoredProgress());
+  const [focusPrompt, setFocusPrompt] = useState('');
 
   const isSomali = appLang === 'so';
   const currentLang = SUPPORTED_LANGUAGES[targetLang];
@@ -74,6 +76,11 @@ export default function App() {
   const handleListeningPractice = () => {
     refreshProgress(recordPracticeSession());
     refreshProgress(recordSkillPractice('listening', 70));
+  };
+
+  const handleStartFocus = (focus: LearnerWeakness) => {
+    setFocusPrompt(focus.practicePrompt || ('Practice this naturally: ' + focus.correction));
+    setActiveTab('conversation');
   };
 
   const handleNavigateToPronunciation = (phrase: string) => {
@@ -184,7 +191,7 @@ export default function App() {
           <div className="animate-fade-in">
             {activeTab === 'conversation' && (
               <ConversationView targetLang={targetLang} appLang={appLang} level={level} speechSpeed={speechSpeed}
-                autoPlayAudio={autoPlayAudio} onSendToPronunciationLab={handleNavigateToPronunciation}
+                autoPlayAudio={autoPlayAudio} focusPrompt={focusPrompt} onSendToPronunciationLab={handleNavigateToPronunciation}
                 onIncrementPractice={handleConversationPractice} onRecordFeedback={handleConversationFeedback}
                 onTriggerMicPermissionModal={() => setIsMicModalOpen(true)} />
             )}
@@ -238,6 +245,7 @@ export default function App() {
         onClose={() => setIsProgressModalOpen(false)}
         appLang={appLang}
         progress={progressData}
+        onStartFocus={handleStartFocus}
       />
       <MicrophonePermissionModal
         isOpen={isMicModalOpen}
