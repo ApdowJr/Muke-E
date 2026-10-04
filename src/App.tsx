@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BookOpen, MessageSquare, Mic2, BarChart3, Sparkles, Flame, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { AppLanguage, SkillLevel, TabType, TargetLanguageCode, LearningFocus } from './types';
 import { Header } from './components/Header';
+import { LandingPage } from './components/LandingPage';
 import { ConversationView } from './components/ConversationView';
 import { PronunciationCoach } from './components/PronunciationCoach';
 import { TranscriptionStudio } from './components/TranscriptionStudio';
@@ -16,6 +17,7 @@ import { CEFRLevel, bandForCEFR } from './utils/cefr';
 export default function App() {
   const [targetLang, setTargetLang] = useState<TargetLanguageCode>('en');
   const [appLang, setAppLang] = useState<AppLanguage>('so');
+  const [showLanding, setShowLanding] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>('learn');
   const [cefrLevel, setCefrLevel] = useState<CEFRLevel>('A1');
   const [level, setLevel] = useState<SkillLevel>('Beginner');
@@ -29,6 +31,17 @@ export default function App() {
 
   const isSomali = appLang === 'so';
   const currentLang = SUPPORTED_LANGUAGES[targetLang];
+
+  if (showLanding) {
+    return (
+      <LandingPage
+        appLang={appLang}
+        targetLang={targetLang}
+        onStartLearning={() => setShowLanding(false)}
+        onSetTargetLang={handleSetTargetLang}
+      />
+    );
+  }
 
   useEffect(() => {
     try {
