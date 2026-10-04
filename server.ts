@@ -385,6 +385,9 @@ Your Goal:
 - If focused practice is not active, set focusResult.passed=false and focusResult.feedback to an empty string.
 - If the learner's sentence is already natural, return an empty correction object rather than inventing a mistake.
 - For the NEXT ADAPTIVE TASK, classify the learner's response as success only when they clearly complete the requested task in a natural, usable way; use partial when the intent is right but execution needs a small correction; use fail when they do not complete the task or the target skill is not demonstrated.
+- Treat the LIVE LEARNER MODEL as an actual control signal: simplify when mode is simplify, reinforce/transfer when mode is reinforce, and increase challenge only when mode is challenge or mastery state is transfer-ready.
+- Do not merely mention the NEXT ADAPTIVE TASK. Make your reply itself set up that task: after brief feedback, ask the learner to perform the requested action in their own words.
+- When task accuracy is below 50% after at least two adaptive tasks, prefer a simpler version of the target skill even if the learner's general level is higher. When task accuracy is 85% or higher after at least two tasks, increase challenge only one step and require transfer to a new context.
 - Return the taskResult skill using the most relevant skill from speaking, listening, vocabulary, grammar, pronunciation, or fluency.
 - Keep taskResult.feedback short and actionable in the learner explanation language.`;
 
