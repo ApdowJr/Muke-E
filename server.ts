@@ -507,11 +507,14 @@ Learner's actual recognized words: "${spokenText}"
 Explanation language: "${nativeLanguage}".
 
 CRITICAL HONESTY RULES:
-- DO NOT return a canned 86% or generic score.
-- If the learner said nothing or wrong words, give an honest low score (15-40%).
-- If they said the words accurately with minor accent, give 75-88%.
-- If they said all words with near-native precision, give 90-98%.
-- Calculate the real score based strictly on what was said vs target.`;
+- DO NOT return a canned score or generic praise.
+- If audio is attached, use the actual audio signal as evidence for pronunciation, articulation, stress, rhythm, and clarity; do not rely only on the transcript.
+- If no usable audio is attached, evaluate only the recognized text and explicitly avoid claiming acoustic or phoneme-level certainty.
+- If the learner said nothing or wrong words, give an honest low score.
+- If the words are accurate but acoustic evidence shows noticeable pronunciation problems, reduce the score accordingly.
+- If the speech is clear, accurate, and naturally delivered, score it highly.
+- Never invent IPA details you cannot support. Use the target language's known pronunciation conventions when providing a guide.
+- Calculate the score from the evidence available, not from a fixed template.`;
 
       const contents: any[] = [{ text: prompt }];
       if (audioBase64 && audioBase64.length > 500) {
