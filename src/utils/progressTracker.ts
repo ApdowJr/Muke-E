@@ -1,3 +1,11 @@
+export type SkillKey = 'speaking' | 'listening' | 'vocabulary' | 'grammar' | 'pronunciation' | 'fluency';
+
+export interface SkillProgress {
+  score: number;
+  practiceCount: number;
+  lastPracticedAt: string | null;
+}
+
 export interface DailyProgressPoint {
   day: string;
   daySo: string;
@@ -12,53 +20,107 @@ export interface ProgressSummary {
   averageScore: number;
   totalPhrases: number;
   weeklyData: DailyProgressPoint[];
+  skills: Record<SkillKey, SkillProgress>;
 }
 
-const STORAGE_KEY = 'moke_e_progress_v2';
+const STORAGE_KEY = 'moke_e_progress_v3';
+const LEGACY_STORAGE_KEY = 'moke_e_progress_v2';
+
+const SKILLS: SkillKey[] = ['speaking', 'listening', 'vocabulary', 'grammar', 'pronunciation', 'fluency'];
+
+function emptySkills(): Record<SkillKey, SkillProgress> {
+  return Object.fromEntries(
+    SKILLS.map((skill) => [skill, { score: 0, practiceCount: 0, lastPracticedAt: null }])
+  ) as Record<SkillKey, SkillProgress>;
+}
+
+function emptyWeeklyData(): DailyProgressPoint[] {
+  const daysEn = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const daysSo = ['Isnin', 'Talaado', 'Arbaco', 'Khamiis', 'Jimce', 'Sabti', 'Axad'];
+  const weeklyData: DailyProgressPoint[] = [];
+
+  for (let i = 6; i >= 0; i -= 1) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dayOfWeek = (d.getDay() + 6) % 7;
+    weeklyData.push({
+      day: daysEn[dayOfWeek],
+      daySo: daysSo[dayOfWeek],
+      practiceCount: 0,
+      accuracy: 0,
+    });
+  }
+
+  return weeklyData;
+}
+
+function normalizeProgress(value: Partial<ProgressSummary>): ProgressSummary {
+  const skills = emptySkills();
+  if (value.skills) {
+    for (const skill of SKILLS) {
+      const saved = value.skills[skill];
+      if (saved) {
+        skills[skill] = {
+          score: Number(saved.score) || 0,
+          practiceCount: Number(saved.practiceCount) || 0,
+          lastPracticedAt: saved.lastPracticedAt || null,
+        };
+      }
+    }
+  }
+
+  return {
+    totalCount: Number(value.totalCount) || 0,
+    streakDays: Number(value.streakDays) || 0,
+    bestStreak: Number(value.bestStreak) || 0,
+    averageScore: Number(value.averageScore) || 0,
+    totalPhrases: Number(value.totalPhrases) || 0,
+    weeklyData: Array.isArray(value.weeklyData) && value.weeklyData.length === 7
+      ? value.weeklyData.map((day) => ({
+          day: day.day,
+          daySo: day.daySo,
+          practiceCount: Number(day.practiceCount) || 0,
+          accuracy: Number(day.accuracy) || 0,
+        }))
+      : emptyWeeklyData(),
+    skills,
+  };
+}
 
 export function getStoredProgress(): ProgressSummary {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      return JSON.parse(raw);
+    if (raw) return normalizeProgress(JSON.parse(raw));
+
+    // Migrate older locally stored progress without inventing new activity.
+    const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (legacy) {
+      const migrated = normalizeProgress(JSON.parse(legacy));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+      return migrated;
     }
-  } catch (e) {}
-
-  // Generate realistic initial week history leading up to today
-  const daysEn = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const daysSo = ['Isnin', 'Talaado', 'Arbaco', 'Khamiis', 'Jimce', 'Sabti', 'Axad'];
-  const todayIdx = new Date().getDay(); // 0 is Sunday
-  // Reorder so today is at the end
-  const weeklyData: DailyProgressPoint[] = [];
-
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    const dayOfWeek = (d.getDay() + 6) % 7; // 0 is Mon, 6 is Sun
-    const count = i === 0 ? 5 : Math.max(1, (i * 3 + 2) % 11);
-    const accuracy = 75 + Math.min(23, (7 - i) * 3);
-    weeklyData.push({
-      day: daysEn[dayOfWeek],
-      daySo: daysSo[dayOfWeek],
-      practiceCount: count,
-      accuracy,
-    });
+  } catch (e) {
+    // Fall through to an empty, honest baseline.
   }
 
-  const defaultProgress: ProgressSummary = {
-    totalCount: 38,
-    streakDays: 4,
-    bestStreak: 7,
-    averageScore: 89,
-    totalPhrases: 26,
-    weeklyData,
-  };
+  return normalizeProgress({});
+}
 
+function persist(progress: ProgressSummary): ProgressSummary {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultProgress));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
   } catch (e) {}
+  return progress;
+}
 
-  return defaultProgress;
+function updateWeeklyEntry(weeklyData: DailyProgressPoint[], score?: number): DailyProgressPoint[] {
+  const weekly = weeklyData.length === 7 ? weeklyData.map((item) => ({ ...item })) : emptyWeeklyData();
+  const today = weekly[weekly.length - 1];
+  today.practiceCount += 1;
+  if (typeof score === 'number' && score > 0) {
+    today.accuracy = today.accuracy === 0 ? Math.round(score) : Math.round((today.accuracy + score) / 2);
+  }
+  return weekly;
 }
 
 export function recordPracticeSession(newScore?: number): ProgressSummary {
@@ -73,46 +135,68 @@ export function recordPracticeSession(newScore?: number): ProgressSummary {
     const diffDays = Math.round(
       (new Date(todayDateStr).getTime() - new Date(lastDate).getTime()) / (1000 * 60 * 60 * 24)
     );
-    if (diffDays === 1) {
-      streak += 1;
-    } else if (diffDays > 1) {
-      streak = 1;
-    }
+    streak = diffDays === 1 ? streak + 1 : 1;
   }
-
-  localStorage.setItem('moke_e_last_date', todayDateStr);
-
-  const updatedTotal = current.totalCount + 1;
-  const updatedPhrases = current.totalPhrases + 1;
-  const updatedBest = Math.max(current.bestStreak, streak);
-
-  let updatedAvg = current.averageScore;
-  if (newScore && newScore > 0) {
-    updatedAvg = Math.round((current.averageScore * 4 + newScore) / 5);
-  }
-
-  // Update today's entry in weeklyData
-  const weekly = [...current.weeklyData];
-  if (weekly.length > 0) {
-    const lastDay = weekly[weekly.length - 1];
-    lastDay.practiceCount += 1;
-    if (newScore) {
-      lastDay.accuracy = Math.round((lastDay.accuracy + newScore) / 2);
-    }
-  }
-
-  const newSummary: ProgressSummary = {
-    totalCount: updatedTotal,
-    streakDays: streak,
-    bestStreak: updatedBest,
-    averageScore: updatedAvg,
-    totalPhrases: updatedPhrases,
-    weeklyData: weekly,
-  };
 
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newSummary));
+    localStorage.setItem('moke_e_last_date', todayDateStr);
   } catch (e) {}
 
-  return newSummary;
+  const updatedScore = typeof newScore === 'number' && newScore > 0
+    ? Math.round((current.averageScore * Math.max(1, current.totalCount) + newScore) / (Math.max(1, current.totalCount) + 1))
+    : current.averageScore;
+
+  return persist({
+    ...current,
+    totalCount: current.totalCount + 1,
+    streakDays: streak,
+    bestStreak: Math.max(current.bestStreak, streak),
+    averageScore: updatedScore,
+    totalPhrases: current.totalPhrases + 1,
+    weeklyData: updateWeeklyEntry(current.weeklyData, newScore),
+  });
+}
+
+export function recordSkillPractice(skill: SkillKey, score: number): ProgressSummary {
+  const current = getStoredProgress();
+  const boundedScore = Math.max(0, Math.min(100, Math.round(score)));
+  const previous = current.skills[skill];
+  const nextCount = previous.practiceCount + 1;
+  const nextScore = previous.score === 0
+    ? boundedScore
+    : Math.round((previous.score * previous.practiceCount + boundedScore) / nextCount);
+
+  return persist({
+    ...current,
+    skills: {
+      ...current.skills,
+      [skill]: {
+        score: nextScore,
+        practiceCount: nextCount,
+        lastPracticedAt: new Date().toISOString(),
+      },
+    },
+  });
+}
+
+export function recordConversationFeedback(options: {
+  corrected: boolean;
+  focusArea?: string;
+}): ProgressSummary {
+  const current = getStoredProgress();
+  const updates: Array<[SkillKey, number]> = [
+    ['speaking', options.corrected ? 65 : 82],
+    ['fluency', options.corrected ? 68 : 84],
+    ['grammar', options.corrected ? 58 : 86],
+  ];
+
+  if (options.focusArea?.toLowerCase().includes('vocab') || options.focusArea?.toLowerCase().includes('word')) {
+    updates.push(['vocabulary', options.corrected ? 62 : 84]);
+  }
+
+  let next = current;
+  for (const [skill, score] of updates) {
+    next = recordSkillPractice(skill, score);
+  }
+  return next;
 }
