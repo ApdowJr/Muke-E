@@ -264,6 +264,7 @@ app.post('/api/chat', async (req, res) => {
       targetLanguage = 'English',
       nativeLanguage = 'Somali',
       level = 'Beginner',
+      cefrLevel = 'A1',
       scenario = 'General Conversation',
       tutorName = 'Moke E',
       learningFocus = null,
@@ -279,6 +280,7 @@ app.post('/api/chat', async (req, res) => {
         translation: `Salaan! Waxaan ahay ${tutorName}. Sideen kuugu caawin karaa inaad maanta barato ${targetLanguage}?`,
         phonetic: '/həˈloʊ aɪ æm moʊk i/',
         feedback: 'Ku hadal ama qor hadalkaaga si aan kuugu saxo dhawaaqa iyo naxwaha!',
+        taskResult: { outcome: 'fail', skill: 'speaking', feedback: '' },
         focusResult: { passed: false, feedback: '' },
         correction: { detected: '', natural: '', explanation: '', focusArea: '', practicePrompt: '' },
         suggestedReplies: [
@@ -343,7 +345,8 @@ app.post('/api/chat', async (req, res) => {
       : 'NEXT ADAPTIVE TASK: unavailable; choose the next task from the live learner model.';
 
     const systemInstruction = `You are ${tutorName}, a world-class, ultra-friendly AI language companion for learners of ${targetLanguage}.
-Learner proficiency level: ${level}.
+Learner CEFR level: ${cefrLevel}.
+Learner proficiency band: ${level}.
 Active conversation scenario: ${scenario}.
 Learner's primary native/explanation language: ${nativeLanguage}.
 
