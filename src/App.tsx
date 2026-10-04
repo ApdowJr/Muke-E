@@ -32,16 +32,6 @@ export default function App() {
   const isSomali = appLang === 'so';
   const currentLang = SUPPORTED_LANGUAGES[targetLang];
 
-  if (showLanding) {
-    return (
-      <LandingPage
-        appLang={appLang}
-        targetLang={targetLang}
-        onStartLearning={() => setShowLanding(false)}
-        onSetTargetLang={handleSetTargetLang}
-      />
-    );
-  }
 
   useEffect(() => {
     try {
@@ -132,6 +122,18 @@ export default function App() {
     }
     setActiveTab('speak');
   };
+
+
+  if (showLanding) {
+    return (
+      <LandingPage
+        appLang={appLang}
+        targetLang={targetLang}
+        onStartLearning={() => setShowLanding(false)}
+        onSetTargetLang={handleSetTargetLang}
+      />
+    );
+  }
 
   const navItems = [
     { id: 'learn' as TabType, label: isSomali ? 'Baro' : 'Learn', short: isSomali ? 'Baro' : 'Learn', icon: BookOpen },
