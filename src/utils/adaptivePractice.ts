@@ -102,3 +102,42 @@ export function getAdaptivePracticeContext(
     guidance: [levelHint, modeHint].join(' '),
   };
 }
+
+export interface AdaptiveScenarioRecommendation {
+  scenarioId: string;
+  reason: string;
+}
+
+const SCENARIO_BY_SKILL: Record<SkillKey, string> = {
+  speaking: 'general',
+  listening: 'travel',
+  vocabulary: 'shopping',
+  grammar: 'interview',
+  pronunciation: 'coffee',
+  fluency: 'travel',
+};
+
+export function getRecommendedScenario(
+  context: Pick<AdaptivePracticeContext, 'weakestSkill' | 'mode' | 'recentPerformance'>,
+): AdaptiveScenarioRecommendation {
+  if (context.mode === 'challenge') {
+    return {
+      scenarioId: context.weakestSkill === 'vocabulary' ? 'shopping' : 'interview',
+      reason: 'Your recent practice is strong, so the next task should require a little more real-world transfer.',
+    };
+  }
+
+  if (context.mode === 'simplify') {
+    return {
+      scenarioId: 'general',
+      reason: 'Your recent performance suggests a simpler conversation will help rebuild confidence before adding pressure.',
+    };
+  }
+
+  return {
+    scenarioId: SCENARIO_BY_SKILL[context.weakestSkill],
+    reason: context.mode === 'reinforce'
+      ? 'This scenario gives you a fresh context for the weakness you have repeated most often.'
+      : 'This scenario gives your weakest practiced skill a useful real-world context.',
+  };
+}
