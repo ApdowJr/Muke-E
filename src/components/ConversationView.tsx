@@ -62,6 +62,9 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
   const [focusSuccesses, setFocusSuccesses] = useState(0);
   const [sessionTurns, setSessionTurns] = useState(0);
   const [sessionCorrections, setSessionCorrections] = useState(0);
+  const [sessionTaskSuccesses, setSessionTaskSuccesses] = useState(0);
+  const [sessionTaskPartials, setSessionTaskPartials] = useState(0);
+  const [sessionTaskAttempts, setSessionTaskAttempts] = useState(0);
   const recommendedScenario = getRecommendedScenario(adaptiveContext);
   const nextTask = getAdaptiveNextTask(adaptiveContext, level);
   const masteryGuidance = getMasteryGuidance(adaptiveContext.weakestSkill, nextTask.type);
@@ -84,7 +87,14 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
     setFocusSuccesses(0);
     setSessionTurns(0);
     setSessionCorrections(0);
-    const nextContext = getAdaptivePracticeContext(level, 0, 0, 0);
+    const nextContext = getAdaptivePracticeContext(level, {
+      focusSuccesses: 0,
+      turns: 0,
+      corrections: 0,
+      taskSuccesses: 0,
+      taskPartials: 0,
+      taskAttempts: 0,
+    });
     setAdaptiveContext(nextContext);
     if (!learningFocus) setActiveScenarioId(getRecommendedScenario(nextContext).scenarioId);
     if (learningFocus?.practicePrompt) setInputText(learningFocus.practicePrompt);
@@ -264,21 +274,35 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
         setLearnerWeaknesses(rememberCorrection(tutorMsg.correction));
       }
       const focusPassed = learningFocus ? tutorMsg.focusResult?.passed === true : false;
-      if (tutorMsg.taskResult?.outcome && nextTask.type) {
+      const taskOutcome = tutorMsg.taskResult?.outcome;
+      if (taskOutcome && nextTask.type) {
         recordAdaptiveTaskOutcome(
-          tutorMsg.taskResult.skill || adaptiveContext.weakestSkill,
+          tutorMsg.taskResult?.skill || adaptiveContext.weakestSkill,
           nextTask.type,
-          tutorMsg.taskResult.outcome,
+          taskOutcome,
         );
       }
       const corrected = Boolean(tutorMsg.correction?.detected && tutorMsg.correction.natural);
       const nextTurns = sessionTurns + 1;
       const nextCorrections = sessionCorrections + (corrected ? 1 : 0);
       const nextFocusSuccesses = focusPassed ? Math.min(focusSuccesses + 1, 2) : focusSuccesses;
+      const nextTaskAttempts = sessionTaskAttempts + (taskOutcome ? 1 : 0);
+      const nextTaskSuccesses = sessionTaskSuccesses + (taskOutcome === 'success' ? 1 : 0);
+      const nextTaskPartials = sessionTaskPartials + (taskOutcome === 'partial' ? 1 : 0);
       if (focusPassed) setFocusSuccesses(nextFocusSuccesses);
       setSessionTurns(nextTurns);
       setSessionCorrections(nextCorrections);
-      const nextContext = getAdaptivePracticeContext(level, nextFocusSuccesses, nextTurns, nextCorrections);
+      setSessionTaskAttempts(nextTaskAttempts);
+      setSessionTaskSuccesses(nextTaskSuccesses);
+      setSessionTaskPartials(nextTaskPartials);
+      const nextContext = getAdaptivePracticeContext(level, {
+        focusSuccesses: nextFocusSuccesses,
+        turns: nextTurns,
+        corrections: nextCorrections,
+        taskSuccesses: nextTaskSuccesses,
+        taskPartials: nextTaskPartials,
+        taskAttempts: nextTaskAttempts,
+      });
       setAdaptiveContext(nextContext);
       onRecordFeedback?.({
         corrected,
