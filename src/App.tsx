@@ -131,6 +131,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-app-bg text-text-primary">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-white">Skip to learning content</a>
       <Header targetLang={targetLang} setTargetLang={handleSetTargetLang} appLang={appLang} setAppLang={handleSetAppLang}
         level={level} setLevel={(next) => { setLevel(next); }} speechSpeed={speechSpeed} setSpeechSpeed={setSpeechSpeed}
         autoPlayAudio={autoPlayAudio} setAutoPlayAudio={setAutoPlayAudio} onOpenMicPermissionModal={() => setIsMicModalOpen(true)}
@@ -156,7 +157,7 @@ export default function App() {
           </div>
         </aside>
 
-        <main className="min-w-0 flex-1 px-4 pb-24 pt-5 sm:px-6 lg:px-8 lg:pb-10">
+        <main id="main-content" tabIndex={-1} className="min-w-0 flex-1 px-4 pb-24 pt-5 sm:px-6 lg:px-8 lg:pb-10">
           <section className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-text-muted">
