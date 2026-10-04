@@ -1,308 +1,59 @@
-import React, { useState } from 'react';
-import {
-  X,
-  Flame,
-  Trophy,
-  Activity,
-  Calendar,
-  CheckCircle2,
-  TrendingUp,
-  BarChart3,
-  Award,
-  Sparkles,
-} from 'lucide-react';
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-} from 'recharts';
+import React from 'react';
+import { X, Flame, Activity, TrendingUp, BookOpen, Mic2, Headphones, MessageSquare, Brain, Gauge, ArrowRight } from 'lucide-react';
 import { AppLanguage } from '../types';
-import { ProgressSummary } from '../utils/progressTracker';
+import { ProgressSummary, SkillKey } from '../utils/progressTracker';
 
-interface LearningProgressModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  appLang: AppLanguage;
-  progress: ProgressSummary;
+interface LearningProgressModalProps { isOpen: boolean; onClose: () => void; appLang: AppLanguage; progress: ProgressSummary; }
+
+const SKILL_META: Record<SkillKey, { label: string; labelSo: string; icon: React.ElementType }> = {
+  speaking: { label: 'Speaking', labelSo: 'Hadalka', icon: MessageSquare },
+  listening: { label: 'Listening', labelSo: 'Dhageysiga', icon: Headphones },
+  vocabulary: { label: 'Vocabulary', labelSo: 'Erayada', icon: BookOpen },
+  grammar: { label: 'Grammar', labelSo: 'Naxwaha', icon: Brain },
+  pronunciation: { label: 'Pronunciation', labelSo: 'Dhawaaqa', icon: Mic2 },
+  fluency: { label: 'Fluency', labelSo: 'Hadal dabiici ah', icon: Gauge },
+};
+
+function getNextFocus(progress: ProgressSummary): SkillKey | null {
+  const practiced = (Object.keys(SKILL_META) as SkillKey[]).filter((key) => progress.skills[key].practiceCount > 0);
+  if (practiced.length === 0) return null;
+  return practiced.reduce((weakest, key) => progress.skills[key].score < progress.skills[weakest].score ? key : weakest, practiced[0]);
 }
 
-export const LearningProgressModal: React.FC<LearningProgressModalProps> = ({
-  isOpen,
-  onClose,
-  appLang,
-  progress,
-}) => {
+export const LearningProgressModal: React.FC<LearningProgressModalProps> = ({ isOpen, onClose, appLang, progress }) => {
   const isSomali = appLang === 'so';
-  const [activeChartTab, setActiveChartTab] = useState<'activity' | 'accuracy'>('activity');
-
   if (!isOpen) return null;
-
-  // Format data for Recharts
-  const chartData = progress.weeklyData.map((d) => ({
-    name: isSomali ? d.daySo.slice(0, 3) : d.day,
-    fullName: isSomali ? d.daySo : d.day,
-    practiceCount: d.practiceCount,
-    accuracy: d.accuracy,
-  }));
-
+  const nextFocus = getNextFocus(progress);
+  const hasActivity = progress.totalCount > 0 || Object.values(progress.skills).some((skill) => skill.practiceCount > 0);
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-xl w-full p-5 sm:p-7 shadow-2xl space-y-6 text-left relative max-h-[92vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
-              <TrendingUp className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
-                {isSomali ? 'Horumarkaaga Waxbarasho' : 'Learning Progress'}
-              </h3>
-              <p className="text-xs text-slate-400">
-                {isSomali ? 'Kormeer tirada tababarka iyo horumarkaaga' : 'Track your practice streaks and accuracy'}
-              </p>
-            </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-3 backdrop-blur-sm">
+      <div className="relative max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-3xl border border-app-border bg-app-surface p-5 shadow-2xl sm:p-7">
+        <button onClick={onClose} aria-label={isSomali ? 'Xir' : 'Close'} className="absolute right-4 top-4 rounded-xl p-2 text-text-muted transition hover:bg-app-elevated hover:text-text-primary"><X className="h-5 w-5" /></button>
+        <header className="pr-10">
+          <div className="flex items-center gap-2 text-primary"><TrendingUp className="h-5 w-5" /><span className="text-xs font-bold uppercase tracking-[0.16em]">{isSomali ? 'Horumarkaaga' : 'Your progress'}</span></div>
+          <h2 className="mt-2 font-display text-2xl font-bold tracking-tight sm:text-3xl">{isSomali ? 'Waxaad baranaysaa waxa aad dhab ahaan isticmaasho.' : 'See what you are actually improving.'}</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">{isSomali ? 'Dhibcahani waa qiyaaso tababar oo ku salaysan layliyada aad samaysay — ma aha imtixaan rasmi ah.' : 'These are practice estimates based on your activity, not official proficiency scores.'}</p>
+        </header>
+        <section className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[[Flame, isSomali ? 'Streak' : 'Streak', `${progress.streakDays}`, isSomali ? 'maalmood' : 'days'], [Activity, isSomali ? 'Tababar' : 'Practice', `${progress.totalCount}`, isSomali ? 'sessions' : 'sessions'], [TrendingUp, isSomali ? 'Celcelis' : 'Average', `${progress.averageScore || 0}%`, isSomali ? 'qiyaas' : 'estimate'], [BookOpen, isSomali ? 'Weedho' : 'Phrases', `${progress.totalPhrases}`, isSomali ? 'layli' : 'practice']].map(([Icon, label, value, suffix]) => {
+            const I = Icon as React.ElementType;
+            return <div key={String(label)} className="rounded-2xl border border-app-border bg-app-elevated p-4"><I className="h-4 w-4 text-primary" /><p className="mt-2 text-xs font-semibold text-text-muted">{String(label)}</p><p className="mt-1 text-xl font-black">{String(value)} <span className="text-[10px] font-medium text-text-muted">{String(suffix)}</span></p></div>;
+          })}
+        </section>
+        <section className="mt-5 rounded-2xl border border-app-border bg-app-elevated p-4 sm:p-5">
+          <div className="flex items-center justify-between gap-3"><div><h3 className="text-sm font-bold">{isSomali ? '6-da xirfadood' : 'Your six skills'}</h3><p className="mt-1 text-xs text-text-muted">{isSomali ? 'Meesha ugu hooseysa ayaa mudan ku celcelin badan.' : 'Your lowest practiced skill becomes the next focus.'}</p></div>{nextFocus && <div className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-[11px] font-bold text-primary">{isSomali ? 'Diiradda xigta' : 'Next focus'}: {isSomali ? SKILL_META[nextFocus].labelSo : SKILL_META[nextFocus].label}</div>}</div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {(Object.keys(SKILL_META) as SkillKey[]).map((skill) => {
+              const meta = SKILL_META[skill]; const data = progress.skills[skill]; const Icon = meta.icon; const practiced = data.practiceCount > 0;
+              return <div key={skill} className="rounded-2xl border border-app-border bg-app-surface p-4"><div className="flex items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-2.5"><div className="rounded-xl bg-primary/10 p-2 text-primary"><Icon className="h-4 w-4" /></div><div className="min-w-0"><p className="text-sm font-bold">{isSomali ? meta.labelSo : meta.label}</p><p className="text-[10px] text-text-muted">{practiced ? `${data.practiceCount} ${isSomali ? 'layli' : 'practice'}` : (isSomali ? 'Weli lama tababaran' : 'Not practiced yet')}</p></div></div><span className="text-lg font-black">{practiced ? `${data.score}%` : '—'}</span></div><div className="mt-3 h-1.5 overflow-hidden rounded-full bg-app-elevated"><div className="h-full rounded-full bg-primary transition-all" style={{ width: `${Math.min(100, data.score)}%` }} /></div></div>;
+            })}
           </div>
-
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* 4 Clean Metric Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-          {/* Streak Card */}
-          <div className="bg-slate-850 border border-slate-800 rounded-2xl p-3.5 space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-slate-400">
-                {isSomali ? 'Streak-ga' : 'Streak'}
-              </span>
-              <Flame className="w-4 h-4 text-amber-500 fill-amber-500" />
-            </div>
-            <div className="text-xl sm:text-2xl font-black text-white">
-              {progress.streakDays}{' '}
-              <span className="text-xs font-normal text-slate-400">
-                {isSomali ? 'bari' : 'days'}
-              </span>
-            </div>
-            <p className="text-[10px] text-slate-400">
-              {isSomali ? `Ugu fiican: ${progress.bestStreak}` : `Best: ${progress.bestStreak}`}
-            </p>
-          </div>
-
-          {/* Total Practice Count Card */}
-          <div className="bg-slate-850 border border-slate-800 rounded-2xl p-3.5 space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-slate-400">
-                {isSomali ? 'Wadarta' : 'Total'}
-              </span>
-              <Activity className="w-4 h-4 text-blue-400" />
-            </div>
-            <div className="text-xl sm:text-2xl font-black text-white">
-              {progress.totalCount}
-            </div>
-            <p className="text-[10px] text-slate-400">
-              {isSomali ? 'layli la qabtay' : 'practices done'}
-            </p>
-          </div>
-
-          {/* Average Pronunciation Score Card */}
-          <div className="bg-slate-850 border border-slate-800 rounded-2xl p-3.5 space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-slate-400">
-                {isSomali ? 'Dhawaaqa' : 'Accuracy'}
-              </span>
-              <Award className="w-4 h-4 text-emerald-400" />
-            </div>
-            <div className="text-xl sm:text-2xl font-black text-white">
-              {progress.averageScore}%
-            </div>
-            <p className="text-[10px] text-slate-400">
-              {isSomali ? 'celcelis saxnaan' : 'avg accuracy'}
-            </p>
-          </div>
-
-          {/* Phrases Mastered Card */}
-          <div className="bg-slate-850 border border-slate-800 rounded-2xl p-3.5 space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-slate-400">
-                {isSomali ? 'Weedho' : 'Phrases'}
-              </span>
-              <Trophy className="w-4 h-4 text-indigo-400" />
-            </div>
-            <div className="text-xl sm:text-2xl font-black text-white">
-              {progress.totalPhrases}
-            </div>
-            <p className="text-[10px] text-slate-400">
-              {isSomali ? 'la bartay' : 'mastered'}
-            </p>
-          </div>
-        </div>
-
-        {/* Recharts Visual Section */}
-        <div className="bg-slate-850/90 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-3">
-          {/* Chart Toggle Header */}
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-white flex items-center gap-1.5">
-              <BarChart3 className="w-4 h-4 text-blue-400" />
-              <span>
-                {activeChartTab === 'activity'
-                  ? isSomali ? 'Dhaqdhaqaaqa Todobaadka (Tirada Layliyada)' : 'Weekly Practice Activity (Count)'
-                  : isSomali ? 'Heerka Saxnaanta Dhawaaqa (%)' : 'Pronunciation Accuracy Trend (%)'}
-              </span>
-            </span>
-
-            <div className="flex items-center bg-slate-800 p-0.5 rounded-xl text-xs font-semibold">
-              <button
-                onClick={() => setActiveChartTab('activity')}
-                className={`px-2.5 py-1 rounded-lg transition-colors ${
-                  activeChartTab === 'activity'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                {isSomali ? 'Layliyada' : 'Sessions'}
-              </button>
-              <button
-                onClick={() => setActiveChartTab('accuracy')}
-                className={`px-2.5 py-1 rounded-lg transition-colors ${
-                  activeChartTab === 'accuracy'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                {isSomali ? 'Dhawaaqa' : 'Accuracy'}
-              </button>
-            </div>
-          </div>
-
-          {/* Recharts Chart Container */}
-          <div className="w-full h-48 sm:h-56 pt-2">
-            <ResponsiveContainer width="100%" height="100%">
-              {activeChartTab === 'activity' ? (
-                <BarChart
-                  data={chartData}
-                  margin={{ top: 10, right: 10, left: -22, bottom: 0 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
-                  <XAxis
-                    dataKey="name"
-                    stroke="#94a3b8"
-                    fontSize={11}
-                    tickLine={false}
-                    axisLine={{ stroke: '#334155' }}
-                  />
-                  <YAxis
-                    stroke="#94a3b8"
-                    fontSize={11}
-                    tickLine={false}
-                    axisLine={{ stroke: '#334155' }}
-                    allowDecimals={false}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#0f172a',
-                      borderColor: '#334155',
-                      borderRadius: '12px',
-                      color: '#fff',
-                      fontSize: '12px',
-                    }}
-                    formatter={(value: any) => [
-                      `${value} ${isSomali ? 'layli' : 'practices'}`,
-                      isSomali ? 'Dhaqdhaqaaq' : 'Activity',
-                    ]}
-                    labelFormatter={(label) => {
-                      const item = chartData.find((d) => d.name === label);
-                      return item?.fullName || label;
-                    }}
-                  />
-                  <Bar
-                    dataKey="practiceCount"
-                    fill="#3b82f6"
-                    radius={[6, 6, 0, 0]}
-                  />
-                </BarChart>
-              ) : (
-                <AreaChart
-                  data={chartData}
-                  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                >
-                  <defs>
-                    <linearGradient id="accuracyGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
-                  <XAxis
-                    dataKey="name"
-                    stroke="#94a3b8"
-                    fontSize={11}
-                    tickLine={false}
-                    axisLine={{ stroke: '#334155' }}
-                  />
-                  <YAxis
-                    domain={[60, 100]}
-                    stroke="#94a3b8"
-                    fontSize={11}
-                    tickLine={false}
-                    axisLine={{ stroke: '#334155' }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#0f172a',
-                      borderColor: '#334155',
-                      borderRadius: '12px',
-                      color: '#fff',
-                      fontSize: '12px',
-                    }}
-                    formatter={(value: any) => [`${value}%`, isSomali ? 'Saxnaanta' : 'Accuracy']}
-                    labelFormatter={(label) => {
-                      const item = chartData.find((d) => d.name === label);
-                      return item?.fullName || label;
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="accuracy"
-                    stroke="#10b981"
-                    strokeWidth={2.5}
-                    fillOpacity={1}
-                    fill="url(#accuracyGrad)"
-                  />
-                </AreaChart>
-              )}
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Encouragement Footer */}
-        <div className="flex items-center justify-between pt-2">
-          <div className="flex items-center gap-2 text-xs text-slate-400">
-            <Sparkles className="w-4 h-4 text-amber-400" />
-            <span>
-              {isSomali
-                ? 'Sii wad maalin kasta si aad streak-gaaga u ilaaliso!'
-                : 'Keep practicing daily to protect your streak!'}
-            </span>
-          </div>
-
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl transition-colors shadow-md shadow-blue-600/20"
-          >
-            {isSomali ? 'Waayahay' : 'Got it'}
-          </button>
-        </div>
+        </section>
+        <section className="mt-5 grid gap-3 rounded-2xl border border-app-border bg-primary/5 p-4 sm:grid-cols-[1fr_auto] sm:items-center sm:p-5">
+          <div className="flex gap-3"><div className="rounded-xl bg-primary/10 p-2.5 text-primary"><ArrowRight className="h-4 w-4" /></div><div><h3 className="text-sm font-bold">{nextFocus ? (isSomali ? `Maanta ku celi ${SKILL_META[nextFocus].labelSo}.` : `Practice ${SKILL_META[nextFocus].label.toLowerCase()} next.`) : (isSomali ? 'Bilow wada hadal si Muke-E u barto meelaha aad u baahan tahay.' : 'Start a conversation so Muke-E can learn what you need.')}</h3><p className="mt-1 text-xs leading-5 text-text-secondary">{isSomali ? 'Horumarku wuxuu ka yimaadaa ku celcelin joogto ah, ma aha tirooyin keliya.' : 'Progress comes from repeated practice, not numbers alone.'}</p></div></div>
+          <button onClick={onClose} className="inline-flex min-h-10 items-center justify-center rounded-xl bg-primary px-4 text-xs font-bold text-white transition hover:opacity-90">{isSomali ? 'Sii wad' : 'Keep learning'}</button>
+        </section>
+        {!hasActivity && <p className="mt-4 text-center text-xs text-text-muted">{isSomali ? 'Weli wax activity ah ma jirto. Layligaaga koowaad ayaa halkan ka bilaabanaya.' : 'No learning activity yet. Your first practice will start building this view.'}</p>}
       </div>
     </div>
   );
