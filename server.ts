@@ -257,6 +257,7 @@ app.post('/api/chat', async (req, res) => {
       level = 'Beginner',
       scenario = 'General Conversation',
       tutorName = 'Moke E',
+      learningFocus = null,
     } = req.body;
 
     const apiKey = process.env.GEMINI_API_KEY;
@@ -276,10 +277,28 @@ app.post('/api/chat', async (req, res) => {
 
     const ai = getAI();
 
+    const focusContext = learningFocus && typeof learningFocus === 'object'
+      ? [
+          'FOCUSED PRACTICE IS ACTIVE.',
+          `Skill: ${String(learningFocus.skill || 'Natural language')}`,
+          `Weakness: ${String(learningFocus.weakness || '')}`,
+          `Target correction: ${String(learningFocus.correction || '')}`,
+          `Practice prompt: ${String(learningFocus.practicePrompt || '')}`,
+          'Keep the exchange short and targeted to this exact weakness.',
+          'Ask the learner to produce a NEW sentence using the corrected form; do not simply repeat the correction for them.',
+          'Compare the learner\'s new sentence against the target correction.',
+          'If they succeed, briefly acknowledge it and give one slightly different follow-up sentence.',
+          'If they miss it, correct only the relevant pattern and ask them to try once more.',
+          'Do not invent unrelated mistakes or turn the session into a long grammar lecture.',
+        ].join('\\n')
+      : 'No focused practice is active. Continue normal adaptive conversation.';
+
     const systemInstruction = `You are ${tutorName}, a world-class, ultra-friendly AI language companion for learners of ${targetLanguage}.
 Learner proficiency level: ${level}.
 Active conversation scenario: ${scenario}.
 Learner's primary native/explanation language: ${nativeLanguage}.
+
+${focusContext}
 
 Your Goal:
 - Reply naturally in ${targetLanguage} like a real human tutor (1 to 2 engaging sentences).
