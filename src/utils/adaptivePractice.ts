@@ -13,6 +13,9 @@ export interface AdaptivePracticeContext {
   repeatedWeaknessCount: number;
   recentPerformance: 'struggling' | 'developing' | 'strong';
   sessionSuccesses: number;
+  sessionTurns: number;
+  sessionCorrections: number;
+  sessionAccuracy: number;
   guidance: string;
 }
 
@@ -33,6 +36,8 @@ function strongestWeakness(weaknesses: LearnerWeakness[]): LearnerWeakness | nul
 export function getAdaptivePracticeContext(
   level: SkillLevel,
   sessionSuccesses = 0,
+  sessionTurns = 0,
+  sessionCorrections = 0,
 ): AdaptivePracticeContext {
   const progress = getStoredProgress();
   const weaknesses = getLearnerWeaknesses();
@@ -49,12 +54,18 @@ export function getAdaptivePracticeContext(
     ? Math.round(practicedScores.reduce((sum, score) => sum + score, 0) / practicedScores.length)
     : 0;
 
+  const sessionAccuracy = sessionTurns > 0
+    ? Math.max(0, Math.round(((sessionTurns - sessionCorrections) / sessionTurns) * 100))
+    : 0;
+
   const recentPerformance: AdaptivePracticeContext['recentPerformance'] =
-    sessionSuccesses >= 2 || baseline >= 85
-      ? 'strong'
-      : sessionSuccesses === 0 && baseline > 0 && baseline < 65
-        ? 'struggling'
-        : 'developing';
+    sessionTurns >= 3 && sessionAccuracy < 55
+      ? 'struggling'
+      : (sessionSuccesses >= 2 || (sessionTurns >= 3 && sessionAccuracy >= 85) || baseline >= 85)
+        ? 'strong'
+        : sessionSuccesses === 0 && baseline > 0 && baseline < 65
+          ? 'struggling'
+          : 'developing';
 
   const repeatedWeakness = weakness && weakness.count >= 2
     ? weakness.correction
@@ -99,6 +110,9 @@ export function getAdaptivePracticeContext(
     repeatedWeaknessCount: weakness?.count || 0,
     recentPerformance,
     sessionSuccesses,
+    sessionTurns,
+    sessionCorrections,
+    sessionAccuracy,
     guidance: [levelHint, modeHint].join(' '),
   };
 }
